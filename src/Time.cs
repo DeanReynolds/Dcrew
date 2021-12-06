@@ -12,4 +12,5 @@ public static class Time {
     public static float Total => (float)_gameTime.TotalGameTime.TotalSeconds;
     public static double DeltaD => _gameTime.ElapsedGameTime.TotalSeconds;
     public static double TotalD => _gameTime.TotalGameTime.TotalSeconds;
+    public static long Ticks => _gameTime.TotalGameTime.Ticks;
 }
