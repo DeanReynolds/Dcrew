@@ -155,7 +155,7 @@ public static class Input {
         if (_lastGamePadPoll != Time.Ticks) {
             _newGamePad.CopyTo(_oldGamePad, 0);
             for (int j = 0; j < 4; j++)
-                _newGamePad[j] = Microsoft.Xna.Framework.Input.GamePad.GetState((PlayerIndex)j, GamePadDeadZone.Circular);
+                _newGamePad[j] = GamePad.GetState((PlayerIndex)j, GamePadDeadZone.Circular);
             _lastGamePadPoll = Time.Ticks;
         }
         return _oldGamePad[i];
@@ -164,7 +164,7 @@ public static class Input {
         if (_lastGamePadPoll != Time.Ticks) {
             _newGamePad.CopyTo(_oldGamePad, 0);
             for (int j = 0; j < 4; j++)
-                _newGamePad[j] = Microsoft.Xna.Framework.Input.GamePad.GetState((PlayerIndex)j, GamePadDeadZone.Circular);
+                _newGamePad[j] = GamePad.GetState((PlayerIndex)j, GamePadDeadZone.Circular);
             _lastGamePadPoll = Time.Ticks;
         }
         return _newGamePad[i];
