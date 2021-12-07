@@ -30,9 +30,9 @@ public static class Pool<T> where T : class, new() {
 
     /// <summary>Returns a free instance of <typeparamref name="T"/> and auto-expands if there's none available</summary>
     public static T? Spawn() {
+        if (Count == 0)
+            return new T();
         lock (_arr) {
-            if (Count == 0)
-                Expand(_arr.Length << 1);
             return Interlocked.Exchange(ref _arr[--Count], null);
         }
     }
@@ -40,7 +40,7 @@ public static class Pool<T> where T : class, new() {
     public static void Free(T obj) {
         lock (_arr) {
             if (Count == _arr.Length)
-                Array.Resize(ref _arr, _arr.Length << 1);
+                Array.Resize(ref _arr, (_arr.Length << 1) + 1);
             _arr[Count++] = obj;
         }
     }
