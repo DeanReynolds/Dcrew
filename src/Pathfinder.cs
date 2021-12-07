@@ -106,7 +106,7 @@ public struct Pathfinder {
         for (int i = 0; i < _memMap.Length; i++) {
             ref var memoryMap = ref _memMap[i];
             if (memoryMap.Built && memoryMap.MapVer != _mapVer) {
-                Array.Resize(ref memoryMap.Map, 0);
+                memoryMap.Map = null;
                 memoryMap.Built = false;
             }
         }
