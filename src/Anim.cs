@@ -1,10 +1,10 @@
 ﻿namespace Dcrew;
 
 public struct Anim {
-    [Flags] enum Flags { IsPlaying = 1, IsLooped = 2 }
+    [Flags] enum Flags : byte { IsPlaying = 1, IsLooped = 2 }
     float _secPerFrame, _startTime, _pauseTime;
     Flags _flags;
-    readonly int _frames;
+    readonly ushort _frames;
     public int CurrentFrame {
         get {
             if ((_flags & Flags.IsPlaying) == 0)
@@ -84,7 +84,7 @@ public struct Anim {
         }
     }
 
-    public Anim(int frames, float secPerCycle, bool loop, bool startPlaying = true) {
+    public Anim(ushort frames, float secPerCycle, bool loop, bool startPlaying = true) {
         _frames = frames;
         _secPerFrame = 1 / secPerCycle;
         _startTime = Time.Total;
