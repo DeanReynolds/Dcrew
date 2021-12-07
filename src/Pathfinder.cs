@@ -30,7 +30,7 @@ public struct Pathfinder {
     struct MemoryMap {
         public uint MapVer;
         public bool Built;
-        public ushort[] Map;
+        public ushort[]? Map;
     }
 
     readonly byte[] _cost;
