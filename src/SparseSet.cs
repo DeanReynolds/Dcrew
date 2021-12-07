@@ -57,6 +57,16 @@ public struct SparseSet<T> where T : struct {
         Count = 0;
     }
 
+    public ref T Set(int i, T item) {
+        int v = _sparse[i];
+        if (v >= Count || _dense[v] != i) {
+            _dense[Count] = i;
+            v = _sparse[i] = Count++;
+        }
+        ref var r = ref _item[v];
+        r = item;
+        return ref r;
+    }
     /// <summary>Add <paramref name="i"/> to this set and set its item to <paramref name="item"/> and return a ref to it</summary>
     public ref T Add(int i, T item) {
         _dense[Count] = i;
@@ -86,6 +96,13 @@ public struct SparseSet<T> where T : struct {
     public bool Has(int i) {
         int v = _sparse[i];
         return v < Count && _dense[v] == i;
+    }
+    public ref T GetIfHas(int i, T ifNot) {
+        int v = _sparse[i];
+        ref var r = ref _item[v];
+        if (v >= Count || _dense[v] != i)
+            r = ifNot;
+        return ref r;
     }
     /// <summary>Empty this set</summary>
     public void Clear() => Count = 0;
