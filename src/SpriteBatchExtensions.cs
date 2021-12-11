@@ -96,6 +96,7 @@ public static class SpriteBatchExtensions {
     }
     public static void FillRectangle(this SpriteBatch s, Rectangle rect, Color color, float rotation = 0, float layer = 0) => s.Draw(Pixel.Texture, rect, Pixel.Source, color, rotation, Vector2.Zero, 0, layer);
     public static void FillRectangle(this SpriteBatch s, float x, float y, float width, float height, Color color, float rotation = 0, float layer = 0) => s.Draw(Pixel.Texture, new Vector2(x, y), Pixel.Source, color, rotation, Vector2.Zero, new Vector2(width, height), 0, layer);
+    public static void FillRectangle(this SpriteBatch s, float x, float y, float width, float height, Color color, float rotation, Vector2 origin, float layer = 0) => s.Draw(Pixel.Texture, new Vector2(x, y), Pixel.Source, color, rotation, origin, new Vector2(width, height), 0, layer);
     public static void FillRectangle(this SpriteBatch s, Vector2 pos, Vector2 scale, Color color, float rotation = 0, float layer = 0) => s.Draw(Pixel.Texture, pos, Pixel.Source, color, rotation, new Vector2(.5f), scale, 0, layer);
     public static void FillRectangle(this SpriteBatch s, Vector2 pos, float scale, Color color, float rotation = 0, float layer = 0) => s.Draw(Pixel.Texture, pos, Pixel.Source, color, rotation, new Vector2(.5f), scale, 0, layer);
     public static void FillRectangle(this SpriteBatch s, Rectangle rect, Color color, float rotation, Vector2 origin, float layer = 0) => s.Draw(Pixel.Texture, rect.Location.ToVector2(), Pixel.Source, color, rotation, origin / rect.Size.ToVector2(), rect.Size.ToVector2(), 0, layer);
