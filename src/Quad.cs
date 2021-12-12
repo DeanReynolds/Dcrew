@@ -33,6 +33,11 @@ public struct Quad {
         var b = FarthestPInDir(v2.a, v2.b, v2.c, v2.d, -dir);
         return a - b;
     }
+    internal static Vector2 Support((Vector2 a, Vector2 b, Vector2 c, Vector2 d) v1, (Vector2 a, Vector2 b) v2, Vector2 dir) {
+        var a = FarthestPInDir(v1.a, v1.b, v1.c, v1.d, dir);
+        var b = Line.FarthestPInDir(v2.a, v2.b, -dir);
+        return a - b;
+    }
 
     static bool IsLeft(Vector2 a, Vector2 b, Vector2 p) => (b.X - a.X) * (p.Y - a.Y) - (p.X - a.X) * (b.Y - a.Y) > 0;
 
@@ -84,6 +89,82 @@ public struct Quad {
         _xy = Vector2.Zero;
     }
 
+    /// <summary>Gets whether or not the other <see cref="Line"/> intersects with this <see cref="Quad"/></summary>
+    /// <param name="value">The other line for testing</param>
+    /// <returns><c>true</c> if other <see cref="Line"/> intersects with this <see cref="Quad"/>; <c>false</c> otherwise</returns>
+    public bool Intersects(Line value) {
+        Vector2 dir = new(0, 1);
+        var v1 = (A, B, C, D);
+        var v2 = (value.A, value.B);
+        var spa = Support(v1, v2, dir);
+        if (Vector2.Dot(spa, dir) <= 0)
+            return false;
+        dir = -dir;
+        var spb = Support(v1, v2, dir);
+        if (Vector2.Dot(spb, dir) <= 0)
+            return false;
+        var simplex = new ConvPoly.Simplex(spa, spb);
+        var nd = simplex.CalcDir();
+        if (!nd.HasValue)
+            return false;
+        dir = nd.Value;
+        do {
+            spa = Support(v1, v2, dir);
+            if (Vector2.Dot(spa, dir) <= 0)
+                return false;
+            simplex.Add(spa);
+            nd = simplex.CalcDir();
+            if (!nd.HasValue)
+                break;
+            dir = nd.Value;
+        } while (true);
+        return true;
+    }
+    /// <summary>Gets whether or not the other <see cref="Line"/> intersects with this <see cref="Quad"/></summary>
+    /// <param name="value">The other line for testing</param>
+    /// <returns><c>true</c> if other <see cref="Line"/> intersects with this <see cref="Quad"/>; <c>false</c> otherwise</returns>
+    public bool Intersects(Line value, out CollisionResolution res) {
+        res = new();
+        Vector2 dir = new(0, 1);
+        var v1 = (A, B, C, D);
+        var v2 = (value.A, value.B);
+        var spa = Support(v1, v2, dir);
+        if (Vector2.Dot(spa, dir) <= 0)
+            return false;
+        dir = -dir;
+        var spb = Support(v1, v2, dir);
+        if (Vector2.Dot(spb, dir) <= 0)
+            return false;
+        var simplex = new ConvPoly.Simplex(spa, spb);
+        var nd = simplex.CalcDir();
+        if (!nd.HasValue)
+            return false;
+        dir = nd.Value;
+        do {
+            spa = Support(v1, v2, dir);
+            if (Vector2.Dot(spa, dir) <= 0)
+                return false;
+            simplex.Add(spa);
+            nd = simplex.CalcDir();
+            if (!nd.HasValue)
+                break;
+            dir = nd.Value;
+        } while (true);
+        ConvPoly.Edge edge;
+        ConvPoly.Polytope polytope = new(simplex);
+        do {
+            edge = polytope.GetClosestEdge();
+            var sp = Support(v1, v2, edge.Normal);
+            var d = Vector2.Dot(sp, edge.Normal);
+            if (MathF.Abs(d - edge.Distance) > .001f) {
+                edge.Distance = float.PositiveInfinity;
+                polytope.Insert(edge.Index, sp);
+            }
+        } while (edge.Distance == float.PositiveInfinity);
+        res.Normal = edge.Normal;
+        res.Depth = edge.Distance + .001f;
+        return true;
+    }
     /// <summary>Gets whether or not the other <see cref="Rectangle"/> intersects with this <see cref="Quad"/></summary>
     /// <param name="value">The other rectangle for testing</param>
     /// <returns><c>true</c> if other <see cref="Rectangle"/> intersects with this <see cref="Quad"/>; <c>false</c> otherwise</returns>

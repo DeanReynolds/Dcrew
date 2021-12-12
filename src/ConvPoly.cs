@@ -120,9 +120,14 @@ public struct ConvPoly {
         return p;
     }
 
-    internal static Vector2 Support(Vector2[] v1, (Vector2 a, Vector2 b, Vector2 c, Vector2 d) v2, Vector2 dir) {
+    internal static Vector2 Support(ReadOnlySpan<Vector2> v1, (Vector2 a, Vector2 b, Vector2 c, Vector2 d) v2, Vector2 dir) {
         var a = FarthestPInDir(v1, dir);
         var b = Quad.FarthestPInDir(v2.a, v2.b, v2.c, v2.d, -dir);
+        return a - b;
+    }
+    internal static Vector2 Support(ReadOnlySpan<Vector2> verts1, (Vector2 a, Vector2 b) verts2, Vector2 dir) {
+        var a = FarthestPInDir(verts1, dir);
+        var b = Line.FarthestPInDir(verts2.a, verts2.b, -dir);
         return a - b;
     }
     internal static Vector2 Support(ReadOnlySpan<Vector2> verts1, ReadOnlySpan<Vector2> verts2, Vector2 dir) {
@@ -175,6 +180,82 @@ public struct ConvPoly {
         _xy = Vector2.Zero;
     }
 
+    /// <summary>Gets whether or not the other <see cref="Line"/> intersects with this <see cref="ConvPoly"/></summary>
+    /// <param name="value">The other line for testing</param>
+    /// <returns><c>true</c> if other <see cref="Line"/> intersects with this <see cref="ConvPoly"/>; <c>false</c> otherwise</returns>
+    public bool Intersects(Line value) {
+        Vector2 dir = new(0, 1);
+        var v1 = Verts;
+        var v2 = (value.A, value.B);
+        var spa = Support(v1, v2, dir);
+        if (Vector2.Dot(spa, dir) <= 0)
+            return false;
+        dir = -dir;
+        var spb = Support(v1, v2, dir);
+        if (Vector2.Dot(spb, dir) <= 0)
+            return false;
+        var simplex = new Simplex(spa, spb);
+        var nd = simplex.CalcDir();
+        if (!nd.HasValue)
+            return false;
+        dir = nd.Value;
+        do {
+            spa = Support(v1, v2, dir);
+            if (Vector2.Dot(spa, dir) <= 0)
+                return false;
+            simplex.Add(spa);
+            nd = simplex.CalcDir();
+            if (!nd.HasValue)
+                break;
+            dir = nd.Value;
+        } while (true);
+        return true;
+    }
+    /// <summary>Gets whether or not the other <see cref="Line"/> intersects with this <see cref="ConvPoly"/></summary>
+    /// <param name="value">The other line for testing</param>
+    /// <returns><c>true</c> if other <see cref="Line"/> intersects with this <see cref="ConvPoly"/>; <c>false</c> otherwise</returns>
+    public bool Intersects(Line value, out CollisionResolution res) {
+        res = new CollisionResolution();
+        Vector2 dir = new(0, 1);
+        var v1 = Verts;
+        var v2 = (value.A, value.B);
+        var spa = Support(v1, v2, dir);
+        if (Vector2.Dot(spa, dir) <= 0)
+            return false;
+        dir = -dir;
+        var spb = Support(v1, v2, dir);
+        if (Vector2.Dot(spb, dir) <= 0)
+            return false;
+        var simplex = new Simplex(spa, spb);
+        var nd = simplex.CalcDir();
+        if (!nd.HasValue)
+            return false;
+        dir = nd.Value;
+        do {
+            spa = Support(v1, v2, dir);
+            if (Vector2.Dot(spa, dir) <= 0)
+                return false;
+            simplex.Add(spa);
+            nd = simplex.CalcDir();
+            if (!nd.HasValue)
+                break;
+            dir = nd.Value;
+        } while (true);
+        Edge edge;
+        Polytope polytope = new(simplex);
+        do {
+            edge = polytope.GetClosestEdge();
+            var sp = Support(v1, v2, edge.Normal);
+            var d = Vector2.Dot(sp, edge.Normal);
+            if (MathF.Abs(d - edge.Distance) > .001f) {
+                edge.Distance = float.PositiveInfinity;
+                polytope.Insert(edge.Index, sp);
+            }
+        } while (edge.Distance == float.PositiveInfinity);
+        res.Normal = edge.Normal;
+        res.Depth = edge.Distance + .001f;
+        return true;
+    }
     /// <summary>Gets whether or not the other <see cref="Rectangle"/> intersects with this <see cref="ConvPoly"/></summary>
     /// <param name="value">The other rectangle for testing</param>
     /// <returns><c>true</c> if other <see cref="Rectangle"/> intersects with this <see cref="ConvPoly"/>; <c>false</c> otherwise</returns>

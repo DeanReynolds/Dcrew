@@ -14,7 +14,7 @@ public static class SpriteBatchExtensions {
         Pixel = (pixel, null);
     }
 
-    public static void DrawPixel(this SpriteBatch s, Vector2 pos, Color color, float rotation = 0, float scale = 1, float layer = 0) => s.Draw(Pixel.Texture, pos, Pixel.Source, color, rotation, Vector2.Zero, scale, 0, layer);
+    public static void DrawPixel(this SpriteBatch s, Vector2 pos, Color color, float rotation = 0, float scale = 1, float layer = 0) => s.Draw(Pixel.Texture, pos, Pixel.Source, color, rotation, new Vector2(.5f), scale, 0, layer);
 
     public static void DrawRectangle(this SpriteBatch s, Rectangle rect, Color color, RectStyle style, float rotation = 0, Vector2 origin = default, float thickness = 1, float layerDepth = 0) {
         var o = new Vector2(0, (int)style / 2f);

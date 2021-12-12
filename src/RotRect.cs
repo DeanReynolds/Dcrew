@@ -148,6 +148,54 @@ public struct RotRect {
     /// <param name="origin">Center of rotation of the created <see cref="RotRect"/></param>
     public RotRect(Rectangle rectangle, float rotation = default, Vector2 origin = default) : this(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height, rotation, origin) { }
 
+    /// <summary>Gets whether or not the other <see cref="Line"/> intersects with this <see cref="RotRect"/></summary>
+    /// <param name="value">The other line for testing</param>
+    /// <returns><c>true</c> if other <see cref="Line"/> intersects with this <see cref="RotRect"/>; <c>false</c> otherwise</returns>
+    public bool Intersects(Line value) {
+        float cos = MathF.Cos(Rotation),
+            sin = MathF.Sin(Rotation),
+            x = -Origin.X,
+            y = -Origin.Y,
+            w = Size.X + x,
+            h = Size.Y + y,
+            xcos = x * cos,
+            ycos = y * cos,
+            xsin = x * sin,
+            ysin = y * sin,
+            wcos = w * cos,
+            wsin = w * sin,
+            hcos = h * cos,
+            hsin = h * sin;
+        Vector2 tl = new(xcos - ysin + XY.X, xsin + ycos + XY.Y),
+           tr = new(wcos - ysin + XY.X, wsin + ycos + XY.Y),
+           br = new(wcos - hsin + XY.X, wsin + hcos + XY.Y),
+           bl = new(xcos - hsin + XY.X, xsin + hcos + XY.Y);
+        return new Quad(tl, tr, br, bl).Intersects(value);
+    }
+    /// <summary>Gets whether or not the other <see cref="Line"/> intersects with this <see cref="RotRect"/></summary>
+    /// <param name="value">The other line for testing</param>
+    /// <returns><c>true</c> if other <see cref="Line"/> intersects with this <see cref="RotRect"/>; <c>false</c> otherwise</returns>
+    public bool Intersects(Line value, out CollisionResolution res) {
+        float cos = MathF.Cos(Rotation),
+            sin = MathF.Sin(Rotation),
+            x = -Origin.X,
+            y = -Origin.Y,
+            w = Size.X + x,
+            h = Size.Y + y,
+            xcos = x * cos,
+            ycos = y * cos,
+            xsin = x * sin,
+            ysin = y * sin,
+            wcos = w * cos,
+            wsin = w * sin,
+            hcos = h * cos,
+            hsin = h * sin;
+        Vector2 tl = new(xcos - ysin + XY.X, xsin + ycos + XY.Y),
+           tr = new(wcos - ysin + XY.X, wsin + ycos + XY.Y),
+           br = new(wcos - hsin + XY.X, wsin + hcos + XY.Y),
+           bl = new(xcos - hsin + XY.X, xsin + hcos + XY.Y);
+        return new Quad(tl, tr, br, bl).Intersects(value, out res);
+    }
     /// <summary>Gets whether or not the other <see cref="Rectangle"/> intersects with this <see cref="RotRect"/></summary>
     /// <param name="value">The other rectangle for testing</param>
     /// <returns><c>true</c> if other <see cref="Rectangle"/> intersects with this <see cref="RotRect"/>; <c>false</c> otherwise</returns>
