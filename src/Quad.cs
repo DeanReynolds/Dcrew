@@ -4,39 +4,23 @@ namespace Dcrew;
 
 /// <summary>A quad</summary>
 public struct Quad {
-    internal static Vector2 FarthestPInDir(Vector2 a, Vector2 b, Vector2 c, Vector2 d, Vector2 dir) {
-        var p = a;
+    internal Vector2 FarthestPoint(Vector2 dir) {
+        var p = A;
         var di = Vector2.Dot(p, dir);
-        var dp2 = Vector2.Dot(b, dir);
+        var dp2 = Vector2.Dot(B, dir);
         if (dp2 > di) {
-            p = b;
+            p = B;
             di = dp2;
         }
-        dp2 = Vector2.Dot(c, dir);
+        dp2 = Vector2.Dot(C, dir);
         if (dp2 > di) {
-            p = c;
+            p = C;
             di = dp2;
         }
-        dp2 = Vector2.Dot(d, dir);
+        dp2 = Vector2.Dot(D, dir);
         if (dp2 > di)
-            return d;
+            return D;
         return p;
-    }
-
-    internal static Vector2 Support((Vector2 a, Vector2 b, Vector2 c, Vector2 d) v1, Vector2[] v2, Vector2 dir) {
-        var a = FarthestPInDir(v1.a, v1.b, v1.c, v1.d, dir);
-        var b = ConvPoly.FarthestPInDir(v2, -dir);
-        return a - b;
-    }
-    internal static Vector2 Support((Vector2 a, Vector2 b, Vector2 c, Vector2 d) v1, (Vector2 a, Vector2 b, Vector2 c, Vector2 d) v2, Vector2 dir) {
-        var a = FarthestPInDir(v1.a, v1.b, v1.c, v1.d, dir);
-        var b = FarthestPInDir(v2.a, v2.b, v2.c, v2.d, -dir);
-        return a - b;
-    }
-    internal static Vector2 Support((Vector2 a, Vector2 b, Vector2 c, Vector2 d) v1, (Vector2 a, Vector2 b) v2, Vector2 dir) {
-        var a = FarthestPInDir(v1.a, v1.b, v1.c, v1.d, dir);
-        var b = Line.FarthestPInDir(v2.a, v2.b, -dir);
-        return a - b;
     }
 
     static bool IsLeft(Vector2 a, Vector2 b, Vector2 p) => (b.X - a.X) * (p.Y - a.Y) - (p.X - a.X) * (b.Y - a.Y) > 0;
@@ -89,85 +73,27 @@ public struct Quad {
         _xy = Vector2.Zero;
     }
 
-    /// <summary>Gets whether or not the other <see cref="Line"/> intersects with this <see cref="Quad"/></summary>
-    /// <param name="value">The other line for testing</param>
-    /// <returns><c>true</c> if other <see cref="Line"/> intersects with this <see cref="Quad"/>; <c>false</c> otherwise</returns>
+    /// <summary>Gets whether or not the given <see cref="Line"/> intersects with this <see cref="Quad"/></summary>
     public bool Intersects(Line value) {
-        Vector2 dir = new(0, 1);
-        var v1 = (A, B, C, D);
-        var v2 = (value.A, value.B);
-        var spa = Support(v1, v2, dir);
-        if (Vector2.Dot(spa, dir) <= 0)
-            return false;
-        dir = -dir;
-        var spb = Support(v1, v2, dir);
-        if (Vector2.Dot(spb, dir) <= 0)
-            return false;
-        var simplex = new ConvPoly.Simplex(spa, spb);
-        var nd = simplex.CalcDir();
-        if (!nd.HasValue)
-            return false;
-        dir = nd.Value;
-        do {
-            spa = Support(v1, v2, dir);
-            if (Vector2.Dot(spa, dir) <= 0)
-                return false;
-            simplex.Add(spa);
-            nd = simplex.CalcDir();
-            if (!nd.HasValue)
-                break;
-            dir = nd.Value;
-        } while (true);
-        return true;
+        Collision.GJK(FarthestPoint, value.FarthestPoint, out var intersects);
+        return intersects;
     }
-    /// <summary>Gets whether or not the other <see cref="Line"/> intersects with this <see cref="Quad"/></summary>
-    /// <param name="value">The other line for testing</param>
-    /// <returns><c>true</c> if other <see cref="Line"/> intersects with this <see cref="Quad"/>; <c>false</c> otherwise</returns>
+    /// <summary>Gets whether or not the given <see cref="Line"/> intersects with this <see cref="Quad"/></summary>
     public bool Intersects(Line value, out CollisionResolution res) {
-        res = new();
-        Vector2 dir = new(0, 1);
-        var v1 = (A, B, C, D);
-        var v2 = (value.A, value.B);
-        var spa = Support(v1, v2, dir);
-        if (Vector2.Dot(spa, dir) <= 0)
-            return false;
-        dir = -dir;
-        var spb = Support(v1, v2, dir);
-        if (Vector2.Dot(spb, dir) <= 0)
-            return false;
-        var simplex = new ConvPoly.Simplex(spa, spb);
-        var nd = simplex.CalcDir();
-        if (!nd.HasValue)
-            return false;
-        dir = nd.Value;
-        do {
-            spa = Support(v1, v2, dir);
-            if (Vector2.Dot(spa, dir) <= 0)
-                return false;
-            simplex.Add(spa);
-            nd = simplex.CalcDir();
-            if (!nd.HasValue)
-                break;
-            dir = nd.Value;
-        } while (true);
-        ConvPoly.Edge edge;
-        ConvPoly.Polytope polytope = new(simplex);
-        do {
-            edge = polytope.GetClosestEdge();
-            var sp = Support(v1, v2, edge.Normal);
-            var d = Vector2.Dot(sp, edge.Normal);
-            if (MathF.Abs(d - edge.Distance) > .001f) {
-                edge.Distance = float.PositiveInfinity;
-                polytope.Insert(edge.Index, sp);
-            }
-        } while (edge.Distance == float.PositiveInfinity);
-        res.Normal = edge.Normal;
-        res.Depth = edge.Distance + .001f;
-        return true;
+        Collision.GJK(FarthestPoint, value.FarthestPoint, out var intersects, out res);
+        return intersects;
     }
-    /// <summary>Gets whether or not the other <see cref="Rectangle"/> intersects with this <see cref="Quad"/></summary>
-    /// <param name="value">The other rectangle for testing</param>
-    /// <returns><c>true</c> if other <see cref="Rectangle"/> intersects with this <see cref="Quad"/>; <c>false</c> otherwise</returns>
+    /// <summary>Gets whether or not the given <see cref="Circle"/> intersects with this <see cref="Quad"/></summary>
+    public bool Intersects(Circle value) {
+        Collision.GJK(FarthestPoint, value.FarthestPoint, out var intersects);
+        return intersects;
+    }
+    /// <summary>Gets whether or not the given <see cref="Circle"/> intersects with this <see cref="Quad"/></summary>
+    public bool Intersects(Circle value, out CollisionResolution res) {
+        Collision.GJK(FarthestPoint, value.FarthestPoint, out var intersects, out res);
+        return intersects;
+    }
+    /// <summary>Gets whether or not the given <see cref="Rectangle"/> intersects with this <see cref="Quad"/></summary>
     public bool Intersects(Rectangle value) {
         Vector2 otl = new(value.Left, value.Top),
            otr = new(value.Right, otl.Y),
@@ -175,9 +101,7 @@ public struct Quad {
            obl = new(otl.X, obr.Y);
         return Intersects(new Quad(otl, otr, obr, obl));
     }
-    /// <summary>Gets whether or not the other <see cref="Rectangle"/> intersects with this <see cref="Quad"/></summary>
-    /// <param name="value">The other rectangle for testing</param>
-    /// <returns><c>true</c> if other <see cref="Rectangle"/> intersects with this <see cref="Quad"/>; <c>false</c> otherwise</returns>
+    /// <summary>Gets whether or not the given <see cref="Rectangle"/> intersects with this <see cref="Quad"/></summary>
     public bool Intersects(Rectangle value, out CollisionResolution res) {
         Vector2 otl = new(value.Left, value.Top),
            otr = new(value.Right, otl.Y),
@@ -185,13 +109,9 @@ public struct Quad {
            obl = new(otl.X, obr.Y);
         return Intersects(new Quad(otl, otr, obr, obl), out res);
     }
-    /// <summary>Gets whether or not the other <see cref="RotRect"/> intersects with this <see cref="Quad"/></summary>
-    /// <param name="value">The other rect for testing</param>
-    /// <returns><c>true</c> if other <see cref="RotRect"/> intersects with this <see cref="Quad"/>; <c>false</c> otherwise</returns>
+    /// <summary>Gets whether or not the given <see cref="RotRect"/> intersects with this <see cref="Quad"/></summary>
     public bool Intersects(RotRect value) => value.Intersects(this);
-    /// <summary>Gets whether or not the other <see cref="RotRect"/> intersects with this <see cref="Quad"/></summary>
-    /// <param name="value">The other rect for testing</param>
-    /// <returns><c>true</c> if other <see cref="RotRect"/> intersects with this <see cref="Quad"/>; <c>false</c> otherwise</returns>
+    /// <summary>Gets whether or not the given <see cref="RotRect"/> intersects with this <see cref="Quad"/></summary>
     public bool Intersects(RotRect value, out CollisionResolution res) {
         float cos = MathF.Cos(value.Rotation),
             sin = MathF.Sin(value.Rotation),
@@ -213,180 +133,36 @@ public struct Quad {
             obl = new(xcos - hsin + value.XY.X, xsin + hcos + value.XY.Y);
         return Intersects(new Quad(otl, otr, obr, obl), out res);
     }
-    /// <summary>Gets whether or not the other <see cref="Quad"/> intersects with this <see cref="Quad"/></summary>
-    /// <param name="value">The other rectangle for testing</param>
-    /// <returns><c>true</c> if other <see cref="Quad"/> intersects with this <see cref="Quad"/>; <c>false</c> otherwise</returns>
+    /// <summary>Gets whether or not the given <see cref="Quad"/> intersects with this <see cref="Quad"/></summary>
     public bool Intersects(Quad value) {
-        Vector2 dir = new(0, 1);
-        var v1 = (A, B, C, D);
-        var v2 = (value.A, value.B, value.C, value.D);
-        var spa = Support(v1, v2, dir);
-        if (Vector2.Dot(spa, dir) <= 0)
-            return false;
-        dir = -dir;
-        var spb = Support(v1, v2, dir);
-        if (Vector2.Dot(spb, dir) <= 0)
-            return false;
-        var simplex = new ConvPoly.Simplex(spa, spb);
-        var nd = simplex.CalcDir();
-        if (!nd.HasValue)
-            return false;
-        dir = nd.Value;
-        do {
-            spa = Support(v1, v2, dir);
-            if (Vector2.Dot(spa, dir) <= 0)
-                return false;
-            simplex.Add(spa);
-            nd = simplex.CalcDir();
-            if (!nd.HasValue)
-                break;
-            dir = nd.Value;
-        } while (true);
-        return true;
+        Collision.GJK(FarthestPoint, value.FarthestPoint, out var intersects);
+        return intersects;
     }
-    /// <summary>Gets whether or not the other <see cref="Quad"/> intersects with this <see cref="Quad"/></summary>
-    /// <param name="value">The other rectangle for testing</param>
-    /// <returns><c>true</c> if other <see cref="Quad"/> intersects with this <see cref="Quad"/>; <c>false</c> otherwise</returns>
+    /// <summary>Gets whether or not the given <see cref="Quad"/> intersects with this <see cref="Quad"/></summary>
     public bool Intersects(Quad value, out CollisionResolution res) {
-        res = new();
-        Vector2 dir = new(0, 1);
-        var v1 = (A, B, C, D);
-        var v2 = (value.A, value.B, value.C, value.D);
-        var spa = Support(v1, v2, dir);
-        if (Vector2.Dot(spa, dir) <= 0)
-            return false;
-        dir = -dir;
-        var spb = Support(v1, v2, dir);
-        if (Vector2.Dot(spb, dir) <= 0)
-            return false;
-        var simplex = new ConvPoly.Simplex(spa, spb);
-        var nd = simplex.CalcDir();
-        if (!nd.HasValue)
-            return false;
-        dir = nd.Value;
-        do {
-            spa = Support(v1, v2, dir);
-            if (Vector2.Dot(spa, dir) <= 0)
-                return false;
-            simplex.Add(spa);
-            nd = simplex.CalcDir();
-            if (!nd.HasValue)
-                break;
-            dir = nd.Value;
-        } while (true);
-        ConvPoly.Edge edge;
-        ConvPoly.Polytope polytope = new(simplex);
-        do {
-            edge = polytope.GetClosestEdge();
-            var sp = Support(v1, v2, edge.Normal);
-            var d = Vector2.Dot(sp, edge.Normal);
-            if (MathF.Abs(d - edge.Distance) > .001f) {
-                edge.Distance = float.PositiveInfinity;
-                polytope.Insert(edge.Index, sp);
-            }
-        } while (edge.Distance == float.PositiveInfinity);
-        res.Normal = edge.Normal;
-        res.Depth = edge.Distance + .001f;
-        return true;
+        Collision.GJK(FarthestPoint, value.FarthestPoint, out var intersects, out res);
+        return intersects;
     }
-    /// <summary>Gets whether or not the other <see cref="ConvPoly"/> intersects with this <see cref="Quad"/></summary>
-    /// <param name="value">The other convex polygon for testing</param>
-    /// <returns><c>true</c> if other <see cref="ConvPoly"/> intersects with this <see cref="Quad"/>; <c>false</c> otherwise</returns>
+    /// <summary>Gets whether or not the given <see cref="ConvPoly"/> intersects with this <see cref="Quad"/></summary>
     public bool Intersects(ConvPoly value) {
-        Vector2 dir = new(0, 1);
-        var v1 = (A, B, C, D);
-        var v2 = value.Verts;
-        var spa = Support(v1, v2, dir);
-        if (Vector2.Dot(spa, dir) <= 0)
-            return false;
-        dir = -dir;
-        var spb = Support(v1, v2, dir);
-        if (Vector2.Dot(spb, dir) <= 0)
-            return false;
-        var simplex = new ConvPoly.Simplex(spa, spb);
-        var nd = simplex.CalcDir();
-        if (!nd.HasValue)
-            return false;
-        dir = nd.Value;
-        do {
-            spa = Support(v1, v2, dir);
-            if (Vector2.Dot(spa, dir) <= 0)
-                return false;
-            simplex.Add(spa);
-            nd = simplex.CalcDir();
-            if (!nd.HasValue)
-                break;
-            dir = nd.Value;
-        } while (true);
-        return true;
+        Collision.GJK(FarthestPoint, value.FarthestPoint, out var intersects);
+        return intersects;
     }
-    /// <summary>Gets whether or not the other <see cref="ConvPoly"/> intersects with this <see cref="Quad"/></summary>
-    /// <param name="value">The other rectangle for testing</param>
-    /// <returns><c>true</c> if other <see cref="ConvPoly"/> intersects with this <see cref="Quad"/>; <c>false</c> otherwise</returns>
+    /// <summary>Gets whether or not the given <see cref="ConvPoly"/> intersects with this <see cref="Quad"/></summary>
     public bool Intersects(ConvPoly value, out CollisionResolution res) {
-        res = new CollisionResolution();
-        Vector2 dir = new(0, 1);
-        var v1 = (A, B, C, D);
-        var v2 = value.Verts;
-        var spa = Support(v1, v2, dir);
-        if (Vector2.Dot(spa, dir) <= 0)
-            return false;
-        dir = -dir;
-        var spb = Support(v1, v2, dir);
-        if (Vector2.Dot(spb, dir) <= 0)
-            return false;
-        var simplex = new ConvPoly.Simplex(spa, spb);
-        var nd = simplex.CalcDir();
-        if (!nd.HasValue)
-            return false;
-        dir = nd.Value;
-        do {
-            spa = Support(v1, v2, dir);
-            if (Vector2.Dot(spa, dir) <= 0)
-                return false;
-            simplex.Add(spa);
-            nd = simplex.CalcDir();
-            if (!nd.HasValue)
-                break;
-            dir = nd.Value;
-        } while (true);
-        ConvPoly.Edge edge;
-        ConvPoly.Polytope polytope = new(simplex);
-        do {
-            edge = polytope.GetClosestEdge();
-            var sp = Support(v1, v2, edge.Normal);
-            var d = Vector2.Dot(sp, edge.Normal);
-            if (MathF.Abs(d - edge.Distance) > .001f) {
-                edge.Distance = float.PositiveInfinity;
-                polytope.Insert(edge.Index, sp);
-            }
-        } while (edge.Distance == float.PositiveInfinity);
-        res.Normal = edge.Normal;
-        res.Depth = edge.Distance + .001f;
-        return true;
+        Collision.GJK(FarthestPoint, value.FarthestPoint, out var intersects, out res);
+        return intersects;
     }
 
-    /// <summary>Gets whether or not the provided <see cref="Vector2"/> lies within the bounds of this <see cref="Quad"/></summary>
-    /// <param name="value">The coordinates to check for inclusion in this <see cref="Quad"/></param>
-    /// <returns><c>true</c> if the provided <see cref="Vector2"/> lies inside this <see cref="Quad"/>; <c>false</c> otherwise</returns>
+    /// <summary>Gets whether or not the given <see cref="Vector2"/> lies within the bounds of this <see cref="Quad"/></summary>
     public bool Contains(Vector2 value) => IsLeft(A, B, value) && IsLeft(B, D, value) && IsLeft(D, C, value) && IsLeft(C, A, value);
-    /// <summary>Gets whether or not the provided <see cref="Point"/> lies within the bounds of this <see cref="Quad"/></summary>
-    /// <param name="value">The coordinates to check for inclusion in this <see cref="Quad"/></param>
-    /// <returns><c>true</c> if the provided <see cref="Point"/> lies inside this <see cref="Quad"/>; <c>false</c> otherwise</returns>
+    /// <summary>Gets whether or not the given <see cref="Point"/> lies within the bounds of this <see cref="Quad"/></summary>
     public bool Contains(Point value) => Contains(value.ToVector2());
-    /// <summary>Gets whether or not the provided coordinates lie within the bounds of this <see cref="Quad"/></summary>
-    /// <param name="x">The x coordinate of the point to check for containment</param>
-    /// <param name="y">The y coordinate of the point to check for containment</param>
-    /// <returns><c>true</c> if the provided coordinates lie inside this <see cref="Quad"/>; <c>false</c> otherwise</returns>
+    /// <summary>Gets whether or not the given coordinates lie within the bounds of this <see cref="Quad"/></summary>
     public bool Contains(int x, int y) => Contains(new Vector2(x, y));
-    /// <summary>Gets whether or not the provided coordinates lie within the bounds of this <see cref="Quad"/></summary>
-    /// <param name="x">The x coordinate of the point to check for containment</param>
-    /// <param name="y">The y coordinate of the point to check for containment</param>
-    /// <returns><c>true</c> if the provided coordinates lie inside this <see cref="Quad"/>; <c>false</c> otherwise</returns>
+    /// <summary>Gets whether or not the given coordinates lie within the bounds of this <see cref="Quad"/></summary>
     public bool Contains(float x, float y) => Contains(new Vector2(x, y));
-    /// <summary>Gets whether or not the provided <see cref="Rectangle"/> lies within the bounds of this <see cref="Quad"/></summary>
-    /// <param name="value">The <see cref="Rectangle"/> to check for inclusion in this <see cref="Quad"/></param>
-    /// <returns><c>true</c> if the provided <see cref="Rectangle"/>'s bounds lie entirely inside this <see cref="Quad"/>; <c>false</c> otherwise</returns>
+    /// <summary>Gets whether or not the given <see cref="Rectangle"/> lies within the bounds of this <see cref="Quad"/></summary>
     public bool Contains(Rectangle value) {
         Vector2 otl = new(value.Left, value.Top),
            otr = new(value.Right, value.Top),
@@ -394,9 +170,7 @@ public struct Quad {
            obr = new(value.Right, value.Bottom);
         return Contains(otl) && Contains(otr) && Contains(obl) && Contains(obr);
     }
-    /// <summary>Gets whether or not the provided <see cref="RotRect"/> lies within the bounds of this <see cref="Quad"/></summary>
-    /// <param name="value">The <see cref="RotRect"/> to check for inclusion in this <see cref="Quad"/></param>
-    /// <returns><c>true</c> if the provided <see cref="RotRect"/>'s bounds lie entirely inside this <see cref="Quad"/>; <c>false</c> otherwise</returns>
+    /// <summary>Gets whether or not the given <see cref="RotRect"/> lies within the bounds of this <see cref="Quad"/></summary>
     public bool Contains(RotRect value) {
         float cos = MathF.Cos(value.Rotation),
             sin = MathF.Sin(value.Rotation),
@@ -418,14 +192,10 @@ public struct Quad {
            obl = new(xcos - hsin + value.XY.X, xsin + hcos + value.XY.Y);
         return Contains(otl) && Contains(otr) && Contains(obl) && Contains(obr);
     }
-    /// <summary>Gets whether or not the provided <see cref="Quad"/> lies within the bounds of this <see cref="Quad"/></summary>
-    /// <param name="value">The <see cref="Quad"/> to check for inclusion in this <see cref="Quad"/></param>
-    /// <returns><c>true</c> if the provided <see cref="Quad"/>'s bounds lie entirely inside this <see cref="Quad"/>; <c>false</c> otherwise</returns>
+    /// <summary>Gets whether or not the given <see cref="Quad"/> lies within the bounds of this <see cref="Quad"/></summary>
     public bool Contains(Quad value) => Contains(value.A) && Contains(value.B) && Contains(value.C) && Contains(value.D);
 
     /// <summary>Changes all corners of this <see cref="Quad"/></summary>
-    /// <param name="offsetX">The x coordinate to add to this <see cref="Quad"/></param>
-    /// <param name="offsetY">The y coordinate to add to this <see cref="Quad"/></param>
     public void Offset(float offsetX, float offsetY) {
         Vector2 v = new(offsetX, offsetY);
         A += v;
@@ -436,9 +206,7 @@ public struct Quad {
     }
 
     /// <summary>Changes all corners of this <see cref="Quad"/></summary>
-    /// <param name="amount">The x and y components to add to this <see cref="Quad"/></param>
     public void Offset(Vector2 amount) => Offset(amount.X, amount.Y);
     /// <summary>Changes all corners of this <see cref="Quad"/></summary>
-    /// <param name="amount">The x and y components to add to this <see cref="Quad"/></param>
     public void Offset(Point amount) => Offset(amount.X, amount.Y);
 }
