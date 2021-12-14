@@ -4,10 +4,11 @@ namespace Dcrew;
 
 /// <summary>A Line</summary>
 public struct Line {
-    internal Vector2 FarthestPoint(Vector2 dir) {
-        if (Vector2.Dot(B, dir) > Vector2.Dot(A, dir))
-            return B;
-        return A;
+    internal static unsafe Vector2 FarthestPoint(void* s, Vector2 dir) {
+        var p = *(Line*)s;
+        if (Vector2.Dot(p.B, dir) > Vector2.Dot(p.A, dir))
+            return p.B;
+        return p.A;
     }
 
     Vector2 _xy;
@@ -47,23 +48,27 @@ public struct Line {
     }
 
     /// <summary>Gets whether or not the given <see cref="Line"/> intersects with this <see cref="Line"/></summary>
-    public bool Intersects(Line value) {
-        Collision.GJK(FarthestPoint, value.FarthestPoint, out var intersects);
+    public unsafe bool Intersects(Line value) {
+        var shape1 = this;
+        Collision.GJK(&shape1, &FarthestPoint, &value, &Line.FarthestPoint, out var intersects);
         return intersects;
     }
     /// <summary>Gets whether or not the given <see cref="Line"/> intersects with this <see cref="Line"/></summary>
-    public bool Intersects(Line value, out CollisionResolution res) {
-        Collision.GJK(FarthestPoint, value.FarthestPoint, out var intersects, out res);
+    public unsafe bool Intersects(Line value, out CollisionResolution res) {
+        var shape1 = this;
+        Collision.GJK(&shape1, &FarthestPoint, &value, &Line.FarthestPoint, out var intersects, out res);
         return intersects;
     }
     /// <summary>Gets whether or not the given <see cref="Circle"/> intersects with this <see cref="Line"/></summary>
-    public bool Intersects(Circle value) {
-        Collision.GJK(FarthestPoint, value.FarthestPoint, out var intersects);
+    public unsafe bool Intersects(Circle value) {
+        var shape1 = this;
+        Collision.GJK(&shape1, &FarthestPoint, &value, &Circle.FarthestPoint, out var intersects);
         return intersects;
     }
     /// <summary>Gets whether or not the given <see cref="Circle"/> intersects with this <see cref="Line"/></summary>
-    public bool Intersects(Circle value, out CollisionResolution res) {
-        Collision.GJK(FarthestPoint, value.FarthestPoint, out var intersects, out res);
+    public unsafe bool Intersects(Circle value, out CollisionResolution res) {
+        var shape1 = this;
+        Collision.GJK(&shape1, &FarthestPoint, &value, &Circle.FarthestPoint, out var intersects, out res);
         return intersects;
     }
     /// <summary>Gets whether or not the given <see cref="Rectangle"/> intersects with this <see cref="Line"/></summary>
@@ -127,23 +132,27 @@ public struct Line {
         return Intersects(new Quad(otl, otr, obr, obl), out res);
     }
     /// <summary>Gets whether or not the given <see cref="Line"/> intersects with this <see cref="Line"/></summary>
-    public bool Intersects(Quad value) {
-        Collision.GJK(FarthestPoint, value.FarthestPoint, out var intersects);
+    public unsafe bool Intersects(Quad value) {
+        var shape1 = this;
+        Collision.GJK(&shape1, &FarthestPoint, &value, &Quad.FarthestPoint, out var intersects);
         return intersects;
     }
     /// <summary>Gets whether or not the given <see cref="Line"/> intersects with this <see cref="Line"/></summary>
-    public bool Intersects(Quad value, out CollisionResolution res) {
-        Collision.GJK(FarthestPoint, value.FarthestPoint, out var intersects, out res);
+    public unsafe bool Intersects(Quad value, out CollisionResolution res) {
+        var shape1 = this;
+        Collision.GJK(&shape1, &FarthestPoint, &value, &Quad.FarthestPoint, out var intersects, out res);
         return intersects;
     }
     /// <summary>Gets whether or not the given <see cref="ConvPoly"/> intersects with this <see cref="Line"/></summary>
-    public bool Intersects(ConvPoly value) {
-        Collision.GJK(FarthestPoint, value.FarthestPoint, out var intersects);
+    public unsafe bool Intersects(ConvPoly value) {
+        var shape1 = this;
+        Collision.GJKPoly(&shape1, &FarthestPoint, value, out var intersects);
         return intersects;
     }
     /// <summary>Gets whether or not the given <see cref="ConvPoly"/> intersects with this <see cref="Line"/></summary>
-    public bool Intersects(ConvPoly value, out CollisionResolution res) {
-        Collision.GJK(FarthestPoint, value.FarthestPoint, out var intersects, out res);
+    public unsafe bool Intersects(ConvPoly value, out CollisionResolution res) {
+        var shape1 = this;
+        Collision.GJKPoly(&shape1, &FarthestPoint, value, out var intersects, out res);
         return intersects;
     }
 

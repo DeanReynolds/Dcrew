@@ -4,18 +4,18 @@ namespace Dcrew;
 
 /// <summary>A convex polygon</summary>
 public struct ConvPoly {
-    internal Vector2 FarthestPoint(Vector2 dir) {
-        var p = Verts[0];
-        var d = Vector2.Dot(p, dir);
-        for (int i = 1; i < Verts.Length; i++) {
-            var p2 = Verts[i];
+    internal static unsafe Vector2 FarthestPoint(ConvPoly s, Vector2 dir) {
+        var fp = s.Verts[0];
+        var d = Vector2.Dot(fp, dir);
+        for (int i = 1; i < s.Verts.Length; i++) {
+            var p2 = s.Verts[i];
             var dp2 = Vector2.Dot(p2, dir);
             if (dp2 > d) {
-                p = p2;
+                fp = p2;
                 d = dp2;
             }
         }
-        return p;
+        return fp;
     }
 
     internal static bool IsLeft(Vector2 a, Vector2 b, Vector2 p) => (b.X - a.X) * (p.Y - a.Y) - (p.X - a.X) * (b.Y - a.Y) > 0;
@@ -63,23 +63,23 @@ public struct ConvPoly {
     }
 
     /// <summary>Gets whether or not the given <see cref="Line"/> intersects with this <see cref="ConvPoly"/></summary>
-    public bool Intersects(Line value) {
-        Collision.GJK(FarthestPoint, value.FarthestPoint, out var intersects);
+    public unsafe bool Intersects(Line value) {
+        Collision.GJKPoly(this, &value, &Line.FarthestPoint, out var intersects);
         return intersects;
     }
     /// <summary>Gets whether or not the given <see cref="Line"/> intersects with this <see cref="ConvPoly"/></summary>
-    public bool Intersects(Line value, out CollisionResolution res) {
-        Collision.GJK(FarthestPoint, value.FarthestPoint, out var intersects, out res);
+    public unsafe bool Intersects(Line value, out CollisionResolution res) {
+        Collision.GJKPoly(this, &value, &Line.FarthestPoint, out var intersects, out res);
         return intersects;
     }
     /// <summary>Gets whether or not the given <see cref="Circle"/> intersects with this <see cref="Circle"/></summary>
-    public bool Intersects(Circle value) {
-        Collision.GJK(FarthestPoint, value.FarthestPoint, out var intersects);
+    public unsafe bool Intersects(Circle value) {
+        Collision.GJKPoly(this, &value, &Circle.FarthestPoint, out var intersects);
         return intersects;
     }
     /// <summary>Gets whether or not the given <see cref="Circle"/> intersects with this <see cref="Circle"/></summary>
-    public bool Intersects(Circle value, out CollisionResolution res) {
-        Collision.GJK(FarthestPoint, value.FarthestPoint, out var intersects, out res);
+    public unsafe bool Intersects(Circle value, out CollisionResolution res) {
+        Collision.GJKPoly(this, &value, &Circle.FarthestPoint, out var intersects, out res);
         return intersects;
     }
     /// <summary>Gets whether or not the given <see cref="Rectangle"/> intersects with this <see cref="ConvPoly"/></summary>
@@ -125,18 +125,18 @@ public struct ConvPoly {
     /// <summary>Gets whether or not the given <see cref="Quad"/> intersects with this <see cref="ConvPoly"/></summary>
     public bool Intersects(Quad value) => value.Intersects(this);
     /// <summary>Gets whether or not the given <see cref="Quad"/> intersects with this <see cref="ConvPoly"/></summary>
-    public bool Intersects(Quad value, out CollisionResolution res) {
-        Collision.GJK(FarthestPoint, value.FarthestPoint, out var intersects, out res);
+    public unsafe bool Intersects(Quad value, out CollisionResolution res) {
+        Collision.GJKPoly(this, &value, &Quad.FarthestPoint, out var intersects, out res);
         return intersects;
     }
     /// <summary>Gets whether or not the given <see cref="ConvPoly"/> intersects with this <see cref="ConvPoly"/></summary>
     public bool Intersects(ConvPoly value) {
-        Collision.GJK(FarthestPoint, value.FarthestPoint, out var intersects);
+        Collision.GJKPoly(this, value, out var intersects);
         return intersects;
     }
     /// <summary>Gets whether or not the given <see cref="ConvPoly"/> intersects with this <see cref="ConvPoly"/></summary>
     public bool Intersects(ConvPoly value, out CollisionResolution res) {
-        Collision.GJK(FarthestPoint, value.FarthestPoint, out var intersects, out res);
+        Collision.GJKPoly(this, value, out var intersects, out res);
         return intersects;
     }
 
