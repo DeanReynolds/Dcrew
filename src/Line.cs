@@ -4,7 +4,7 @@ namespace Dcrew;
 
 /// <summary>A Line</summary>
 public struct Line {
-    internal static unsafe Vector2 FarthestPoint(Span<Vector2> verts, Vector2 dir) {
+    internal static Vector2 FarthestPoint(Span<Vector2> verts, Vector2 dir) {
         if (Vector2.Dot(verts[1], dir) > Vector2.Dot(verts[0], dir))
             return verts[1];
         return verts[0];

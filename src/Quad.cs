@@ -4,7 +4,7 @@ namespace Dcrew;
 
 /// <summary>A quad</summary>
 public struct Quad {
-    internal static unsafe Vector2 FarthestPoint(Span<Vector2> verts, Vector2 dir) {
+    internal static Vector2 FarthestPoint(Span<Vector2> verts, Vector2 dir) {
         var fp = verts[0];
         var di = Vector2.Dot(fp, dir);
         var dp2 = Vector2.Dot(verts[1], dir);

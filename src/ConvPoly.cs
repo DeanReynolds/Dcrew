@@ -4,7 +4,7 @@ namespace Dcrew;
 
 /// <summary>A convex polygon</summary>
 public struct ConvPoly {
-    internal static unsafe Vector2 FarthestPoint(Span<Vector2> verts, Vector2 dir) {
+    internal static Vector2 FarthestPoint(Span<Vector2> verts, Vector2 dir) {
         var fp = verts[0];
         var d = Vector2.Dot(fp, dir);
         for (int i = 1; i < verts.Length; i++) {

@@ -4,7 +4,7 @@ namespace Dcrew;
 
 /// <summary>A circle</summary>
 public struct Circle {
-    internal static unsafe Vector2 FarthestPoint(Span<Vector2> verts, Vector2 dir) {
+    internal static Vector2 FarthestPoint(Span<Vector2> verts, Vector2 dir) {
         return verts[0] + Vector2.Normalize(dir) * verts[1].X;
     }
 
