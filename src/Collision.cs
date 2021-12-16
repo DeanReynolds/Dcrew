@@ -18,7 +18,7 @@ internal static class Collision {
             _b = v;
         }
 
-        public Vector2? CalcDir2C() {
+        public Vector2 CalcDir2C() {
             Vector2 ab = _a - _b, abPerp = new(ab.Y, -ab.X);
             if ((abPerp.X * -_b.X) + (abPerp.Y * -_b.Y) <= 0)
                 abPerp = -abPerp;
@@ -98,16 +98,13 @@ internal static class Collision {
         if (Vector2.Dot(spb, dir) <= 0)
             return;
         var simplex = new Simplex(spa, spb);
-        var nd = simplex.CalcDir2C();
-        if (!nd.HasValue)
-            return;
-        dir = nd.Value;
+        dir = simplex.CalcDir2C();
         do {
             spa = farthestPoint1(verts1, dir) - farthestPoint2(verts2, -dir);
             if (Vector2.Dot(spa, dir) <= 0)
                 return;
             simplex.Add(spa);
-            nd = simplex.CalcDir3C();
+            var nd = simplex.CalcDir3C();
             if (!nd.HasValue)
                 break;
             dir = nd.Value;
@@ -127,16 +124,13 @@ internal static class Collision {
         if (Vector2.Dot(spb, dir) <= 0)
             return;
         var simplex = new Simplex(spa, spb);
-        var nd = simplex.CalcDir2C();
-        if (!nd.HasValue)
-            return;
-        dir = nd.Value;
+        dir = simplex.CalcDir2C();
         do {
             spa = farthestPoint1(verts1, dir) - farthestPoint2(verts2, -dir);
             if (Vector2.Dot(spa, dir) <= 0)
                 return;
             simplex.Add(spa);
-            nd = simplex.CalcDir3C();
+            var nd = simplex.CalcDir3C();
             if (!nd.HasValue)
                 break;
             dir = nd.Value;
