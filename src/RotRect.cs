@@ -7,13 +7,13 @@ public struct RotRect {
     static bool IsLeft(Vector2 a, Vector2 b, Vector2 p) => (b.X - a.X) * (p.Y - a.Y) - (p.X - a.X) * (b.Y - a.Y) > 0;
     static bool PointInRect(Vector2 x, Vector2 y, Vector2 z, Vector2 w, Vector2 p) => IsLeft(x, y, p) && IsLeft(y, z, p) && IsLeft(z, w, p) && IsLeft(w, x, p);
 
-    /// <summary>Coordinates of this <see cref="RotRect"/></summary>
+    /// <summary>Position</summary>
     public Vector2 XY;
     /// <summary>Size of bounds</summary>
     public Vector2 Size;
-    /// <summary>Rotation (in radians) of this <see cref="RotRect"/></summary>
+    /// <summary>Rotation (in radians)</summary>
     public float Rotation;
-    /// <summary>Center of rotation of this <see cref="RotRect"/></summary>
+    /// <summary>Center of rotation</summary>
     public Vector2 Origin;
 
     /// <summary>X coordinate of this <see cref="RotRect"/></summary>
