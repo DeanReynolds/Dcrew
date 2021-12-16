@@ -19,7 +19,7 @@ internal static class Collision {
         }
 
         public Vector2 CalcDir2C() {
-            Vector2 ab = _a - _b, abPerp = new(ab.Y, -ab.X);
+            Vector2 abPerp = new(_a.Y - _b.Y, -(_a.X - _b.X));
             if ((abPerp.X * -_b.X) + (abPerp.Y * -_b.Y) <= 0)
                 abPerp = -abPerp;
             return abPerp;
