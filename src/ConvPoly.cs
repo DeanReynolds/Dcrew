@@ -4,11 +4,11 @@ namespace Dcrew;
 
 /// <summary>A convex polygon</summary>
 public struct ConvPoly {
-    internal static unsafe Vector2 FarthestPoint(ConvPoly s, Vector2 dir) {
-        var fp = s.Verts[0];
+    internal static unsafe Vector2 FarthestPoint(Span<Vector2> verts, Vector2 dir) {
+        var fp = verts[0];
         var d = Vector2.Dot(fp, dir);
-        for (int i = 1; i < s.Verts.Length; i++) {
-            var p2 = s.Verts[i];
+        for (int i = 1; i < verts.Length; i++) {
+            var p2 = verts[i];
             var dp2 = Vector2.Dot(p2, dir);
             if (dp2 > d) {
                 fp = p2;
@@ -64,22 +64,22 @@ public struct ConvPoly {
 
     /// <summary>Gets whether or not the given <see cref="Line"/> intersects with this <see cref="ConvPoly"/></summary>
     public unsafe bool Intersects(Line value) {
-        Collision.GJKPoly(this, &value, &Line.FarthestPoint, out var intersects);
+        Collision.GJK(Verts, &FarthestPoint, stackalloc[] { value.A, value.B }, &Line.FarthestPoint, out var intersects);
         return intersects;
     }
     /// <summary>Gets whether or not the given <see cref="Line"/> intersects with this <see cref="ConvPoly"/></summary>
     public unsafe bool Intersects(Line value, out CollisionResolution res) {
-        Collision.GJKPoly(this, &value, &Line.FarthestPoint, out var intersects, out res);
+        Collision.GJK(Verts, &FarthestPoint, stackalloc[] { value.A, value.B }, &Line.FarthestPoint, out var intersects, out res);
         return intersects;
     }
     /// <summary>Gets whether or not the given <see cref="Circle"/> intersects with this <see cref="Circle"/></summary>
     public unsafe bool Intersects(Circle value) {
-        Collision.GJKPoly(this, &value, &Circle.FarthestPoint, out var intersects);
+        Collision.GJK(Verts, &FarthestPoint, stackalloc[] { value.XY, new Vector2(value.Radius, 0) }, &Circle.FarthestPoint, out var intersects);
         return intersects;
     }
     /// <summary>Gets whether or not the given <see cref="Circle"/> intersects with this <see cref="Circle"/></summary>
     public unsafe bool Intersects(Circle value, out CollisionResolution res) {
-        Collision.GJKPoly(this, &value, &Circle.FarthestPoint, out var intersects, out res);
+        Collision.GJK(Verts, &FarthestPoint, stackalloc[] { value.XY, new Vector2(value.Radius, 0) }, &Circle.FarthestPoint, out var intersects, out res);
         return intersects;
     }
     /// <summary>Gets whether or not the given <see cref="Rectangle"/> intersects with this <see cref="ConvPoly"/></summary>
@@ -126,17 +126,17 @@ public struct ConvPoly {
     public bool Intersects(Quad value) => value.Intersects(this);
     /// <summary>Gets whether or not the given <see cref="Quad"/> intersects with this <see cref="ConvPoly"/></summary>
     public unsafe bool Intersects(Quad value, out CollisionResolution res) {
-        Collision.GJKPoly(this, &value, &Quad.FarthestPoint, out var intersects, out res);
+        Collision.GJK(Verts, &FarthestPoint, stackalloc[] { value.A, value.B, value.C, value.D }, &Quad.FarthestPoint, out var intersects, out res);
         return intersects;
     }
     /// <summary>Gets whether or not the given <see cref="ConvPoly"/> intersects with this <see cref="ConvPoly"/></summary>
-    public bool Intersects(ConvPoly value) {
-        Collision.GJKPoly(this, value, out var intersects);
+    public unsafe bool Intersects(ConvPoly value) {
+        Collision.GJK(Verts, &FarthestPoint, value.Verts, &ConvPoly.FarthestPoint, out var intersects);
         return intersects;
     }
     /// <summary>Gets whether or not the given <see cref="ConvPoly"/> intersects with this <see cref="ConvPoly"/></summary>
-    public bool Intersects(ConvPoly value, out CollisionResolution res) {
-        Collision.GJKPoly(this, value, out var intersects, out res);
+    public unsafe bool Intersects(ConvPoly value, out CollisionResolution res) {
+        Collision.GJK(Verts, &FarthestPoint, value.Verts, &ConvPoly.FarthestPoint, out var intersects, out res);
         return intersects;
     }
 

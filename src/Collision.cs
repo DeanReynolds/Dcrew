@@ -51,10 +51,9 @@ internal static class Collision {
         public Polytope(Simplex simplex) {
             _verts = new List<Vector2>(4) {
                 simplex._a,
-                simplex._b
+                simplex._b,
+                simplex._c
             };
-            if (simplex._c != default)
-                _verts.Add(simplex._c);
         }
 
         public void Insert(int i, Vector2 v) => _verts.Insert(i, v);
@@ -88,14 +87,14 @@ internal static class Collision {
         public int Index;
     }
 
-    public static unsafe void GJK(void* shape1, delegate*<void*, Vector2, Vector2> farthestPoint1, void* shape2, delegate*<void*, Vector2, Vector2> farthestPoint2, out bool intersects) {
+    public static unsafe void GJK(Span<Vector2> verts1, delegate*<Span<Vector2>, Vector2, Vector2> farthestPoint1, Span<Vector2> verts2, delegate*<Span<Vector2>, Vector2, Vector2> farthestPoint2, out bool intersects) {
         intersects = false;
         Vector2 dir = new(0, 1);
-        var spa = farthestPoint1(shape1, dir) - farthestPoint2(shape2, -dir);
+        var spa = farthestPoint1(verts1, dir) - farthestPoint2(verts2, -dir);
         if (Vector2.Dot(spa, dir) <= 0)
             return;
         dir = -dir;
-        var spb = farthestPoint1(shape1, dir) - farthestPoint2(shape2, -dir);
+        var spb = farthestPoint1(verts1, dir) - farthestPoint2(verts2, -dir);
         if (Vector2.Dot(spb, dir) <= 0)
             return;
         var simplex = new Simplex(spa, spb);
@@ -104,7 +103,7 @@ internal static class Collision {
             return;
         dir = nd.Value;
         do {
-            spa = farthestPoint1(shape1, dir) - farthestPoint2(shape2, -dir);
+            spa = farthestPoint1(verts1, dir) - farthestPoint2(verts2, -dir);
             if (Vector2.Dot(spa, dir) <= 0)
                 return;
             simplex.Add(spa);
@@ -116,15 +115,15 @@ internal static class Collision {
         intersects = true;
     }
 
-    public static unsafe void GJK(void* shape1, delegate*<void*, Vector2, Vector2> farthestPoint1, void* shape2, delegate*<void*, Vector2, Vector2> farthestPoint2, out bool intersects, out CollisionResolution res) {
+    public static unsafe void GJK(Span<Vector2> verts1, delegate*<Span<Vector2>, Vector2, Vector2> farthestPoint1, Span<Vector2> verts2, delegate*<Span<Vector2>, Vector2, Vector2> farthestPoint2, out bool intersects, out CollisionResolution res) {
         intersects = false;
         res = new CollisionResolution();
         Vector2 dir = new(0, 1);
-        var spa = farthestPoint1(shape1, dir) - farthestPoint2(shape2, -dir);
+        var spa = farthestPoint1(verts1, dir) - farthestPoint2(verts2, -dir);
         if (Vector2.Dot(spa, dir) <= 0)
             return;
         dir = -dir;
-        var spb = farthestPoint1(shape1, dir) - farthestPoint2(shape2, -dir);
+        var spb = farthestPoint1(verts1, dir) - farthestPoint2(verts2, -dir);
         if (Vector2.Dot(spb, dir) <= 0)
             return;
         var simplex = new Simplex(spa, spb);
@@ -133,7 +132,7 @@ internal static class Collision {
             return;
         dir = nd.Value;
         do {
-            spa = farthestPoint1(shape1, dir) - farthestPoint2(shape2, -dir);
+            spa = farthestPoint1(verts1, dir) - farthestPoint2(verts2, -dir);
             if (Vector2.Dot(spa, dir) <= 0)
                 return;
             simplex.Add(spa);
@@ -147,217 +146,7 @@ internal static class Collision {
         Polytope polytope = new(simplex);
         do {
             edge = polytope.GetClosestEdge();
-            var sp = farthestPoint1(shape1, edge.Normal) - farthestPoint2(shape2, -edge.Normal);
-            var d = Vector2.Dot(sp, edge.Normal);
-            if (MathF.Abs(d - edge.Distance) > .001f) {
-                edge.Distance = float.PositiveInfinity;
-                polytope.Insert(edge.Index, sp);
-            }
-        } while (edge.Distance == float.PositiveInfinity);
-        res.Normal = edge.Normal;
-        res.Depth = edge.Distance + .001f;
-    }
-
-    public unsafe static void GJKPoly(ConvPoly shape1, void* shape2, delegate*<void*, Vector2, Vector2> farthestPoint2, out bool intersects) {
-        intersects = false;
-        Vector2 dir = new(0, 1);
-        var spa = ConvPoly.FarthestPoint(shape1, dir) - farthestPoint2(shape2, -dir);
-        if (Vector2.Dot(spa, dir) <= 0)
-            return;
-        dir = -dir;
-        var spb = ConvPoly.FarthestPoint(shape1, dir) - farthestPoint2(shape2, -dir);
-        if (Vector2.Dot(spb, dir) <= 0)
-            return;
-        var simplex = new Simplex(spa, spb);
-        var nd = simplex.CalcDir2C();
-        if (!nd.HasValue)
-            return;
-        dir = nd.Value;
-        do {
-            spa = ConvPoly.FarthestPoint(shape1, dir) - farthestPoint2(shape2, -dir);
-            if (Vector2.Dot(spa, dir) <= 0)
-                return;
-            simplex.Add(spa);
-            nd = simplex.CalcDir3C();
-            if (!nd.HasValue)
-                break;
-            dir = nd.Value;
-        } while (true);
-        intersects = true;
-    }
-
-    public unsafe static void GJKPoly(ConvPoly shape1, void* shape2, delegate*<void*, Vector2, Vector2> farthestPoint2, out bool intersects, out CollisionResolution res) {
-        intersects = false;
-        res = new CollisionResolution();
-        Vector2 dir = new(0, 1);
-        var spa = ConvPoly.FarthestPoint(shape1, dir) - farthestPoint2(shape2, -dir);
-        if (Vector2.Dot(spa, dir) <= 0)
-            return;
-        dir = -dir;
-        var spb = ConvPoly.FarthestPoint(shape1, dir) - farthestPoint2(shape2, -dir);
-        if (Vector2.Dot(spb, dir) <= 0)
-            return;
-        var simplex = new Simplex(spa, spb);
-        var nd = simplex.CalcDir2C();
-        if (!nd.HasValue)
-            return;
-        dir = nd.Value;
-        do {
-            spa = ConvPoly.FarthestPoint(shape1, dir) - farthestPoint2(shape2, -dir);
-            if (Vector2.Dot(spa, dir) <= 0)
-                return;
-            simplex.Add(spa);
-            nd = simplex.CalcDir3C();
-            if (!nd.HasValue)
-                break;
-            dir = nd.Value;
-        } while (true);
-        intersects = true;
-        Edge edge;
-        Polytope polytope = new(simplex);
-        do {
-            edge = polytope.GetClosestEdge();
-            var sp = ConvPoly.FarthestPoint(shape1, edge.Normal) - farthestPoint2(shape2, -edge.Normal);
-            var d = Vector2.Dot(sp, edge.Normal);
-            if (MathF.Abs(d - edge.Distance) > .001f) {
-                edge.Distance = float.PositiveInfinity;
-                polytope.Insert(edge.Index, sp);
-            }
-        } while (edge.Distance == float.PositiveInfinity);
-        res.Normal = edge.Normal;
-        res.Depth = edge.Distance + .001f;
-    }
-
-    public unsafe static void GJKPoly(void* shape1, delegate*<void*, Vector2, Vector2> farthestPoint1, ConvPoly shape2, out bool intersects) {
-        intersects = false;
-        Vector2 dir = new(0, 1);
-        var spa = farthestPoint1(shape1, dir) - ConvPoly.FarthestPoint(shape2, -dir);
-        if (Vector2.Dot(spa, dir) <= 0)
-            return;
-        dir = -dir;
-        var spb = farthestPoint1(shape1, dir) - ConvPoly.FarthestPoint(shape2, -dir);
-        if (Vector2.Dot(spb, dir) <= 0)
-            return;
-        var simplex = new Simplex(spa, spb);
-        var nd = simplex.CalcDir2C();
-        if (!nd.HasValue)
-            return;
-        dir = nd.Value;
-        do {
-            spa = farthestPoint1(shape1, dir) - ConvPoly.FarthestPoint(shape2, -dir);
-            if (Vector2.Dot(spa, dir) <= 0)
-                return;
-            simplex.Add(spa);
-            nd = simplex.CalcDir3C();
-            if (!nd.HasValue)
-                break;
-            dir = nd.Value;
-        } while (true);
-        intersects = true;
-    }
-
-    public unsafe static void GJKPoly(void* shape1, delegate*<void*, Vector2, Vector2> farthestPoint1, ConvPoly shape2, out bool intersects, out CollisionResolution res) {
-        intersects = false;
-        res = new CollisionResolution();
-        Vector2 dir = new(0, 1);
-        var spa = farthestPoint1(shape1, dir) - ConvPoly.FarthestPoint(shape2, -dir);
-        if (Vector2.Dot(spa, dir) <= 0)
-            return;
-        dir = -dir;
-        var spb = farthestPoint1(shape1, dir) - ConvPoly.FarthestPoint(shape2, -dir);
-        if (Vector2.Dot(spb, dir) <= 0)
-            return;
-        var simplex = new Simplex(spa, spb);
-        var nd = simplex.CalcDir2C();
-        if (!nd.HasValue)
-            return;
-        dir = nd.Value;
-        do {
-            spa = farthestPoint1(shape1, dir) - ConvPoly.FarthestPoint(shape2, -dir);
-            if (Vector2.Dot(spa, dir) <= 0)
-                return;
-            simplex.Add(spa);
-            nd = simplex.CalcDir3C();
-            if (!nd.HasValue)
-                break;
-            dir = nd.Value;
-        } while (true);
-        intersects = true;
-        Edge edge;
-        Polytope polytope = new(simplex);
-        do {
-            edge = polytope.GetClosestEdge();
-            var sp = farthestPoint1(shape1, edge.Normal) - ConvPoly.FarthestPoint(shape2, -edge.Normal);
-            var d = Vector2.Dot(sp, edge.Normal);
-            if (MathF.Abs(d - edge.Distance) > .001f) {
-                edge.Distance = float.PositiveInfinity;
-                polytope.Insert(edge.Index, sp);
-            }
-        } while (edge.Distance == float.PositiveInfinity);
-        res.Normal = edge.Normal;
-        res.Depth = edge.Distance + .001f;
-    }
-
-    public unsafe static void GJKPoly(ConvPoly shape1, ConvPoly shape2, out bool intersects) {
-        intersects = false;
-        Vector2 dir = new(0, 1);
-        var spa = ConvPoly.FarthestPoint(shape1, dir) - ConvPoly.FarthestPoint(shape2, -dir);
-        if (Vector2.Dot(spa, dir) <= 0)
-            return;
-        dir = -dir;
-        var spb = ConvPoly.FarthestPoint(shape1, dir) - ConvPoly.FarthestPoint(shape2, -dir);
-        if (Vector2.Dot(spb, dir) <= 0)
-            return;
-        var simplex = new Simplex(spa, spb);
-        var nd = simplex.CalcDir2C();
-        if (!nd.HasValue)
-            return;
-        dir = nd.Value;
-        do {
-            spa = ConvPoly.FarthestPoint(shape1, dir) - ConvPoly.FarthestPoint(shape2, -dir);
-            if (Vector2.Dot(spa, dir) <= 0)
-                return;
-            simplex.Add(spa);
-            nd = simplex.CalcDir3C();
-            if (!nd.HasValue)
-                break;
-            dir = nd.Value;
-        } while (true);
-        intersects = true;
-    }
-
-    public unsafe static void GJKPoly(ConvPoly shape1, ConvPoly shape2, out bool intersects, out CollisionResolution res) {
-        intersects = false;
-        res = new CollisionResolution();
-        Vector2 dir = new(0, 1);
-        var spa = ConvPoly.FarthestPoint(shape1, dir) - ConvPoly.FarthestPoint(shape2, -dir);
-        if (Vector2.Dot(spa, dir) <= 0)
-            return;
-        dir = -dir;
-        var spb = ConvPoly.FarthestPoint(shape1, dir) - ConvPoly.FarthestPoint(shape2, -dir);
-        if (Vector2.Dot(spb, dir) <= 0)
-            return;
-        var simplex = new Simplex(spa, spb);
-        var nd = simplex.CalcDir2C();
-        if (!nd.HasValue)
-            return;
-        dir = nd.Value;
-        do {
-            spa = ConvPoly.FarthestPoint(shape1, dir) - ConvPoly.FarthestPoint(shape2, -dir);
-            if (Vector2.Dot(spa, dir) <= 0)
-                return;
-            simplex.Add(spa);
-            nd = simplex.CalcDir3C();
-            if (!nd.HasValue)
-                break;
-            dir = nd.Value;
-        } while (true);
-        intersects = true;
-        Edge edge;
-        Polytope polytope = new(simplex);
-        do {
-            edge = polytope.GetClosestEdge();
-            var sp = ConvPoly.FarthestPoint(shape1, edge.Normal) - ConvPoly.FarthestPoint(shape2, -edge.Normal);
+            var sp = farthestPoint1(verts1, edge.Normal) - farthestPoint2(verts2, -edge.Normal);
             var d = Vector2.Dot(sp, edge.Normal);
             if (MathF.Abs(d - edge.Distance) > .001f) {
                 edge.Distance = float.PositiveInfinity;
