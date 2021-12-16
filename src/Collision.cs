@@ -26,7 +26,7 @@ internal static class Collision {
         }
 
         public Vector2? CalcDir3C() {
-            Vector2 a = _c, b = _b, c = _a, ab = b - a, abPerp = new(ab.Y, -ab.X);
+            Vector2 b = _b, c = _a, abPerp = new(b.Y - _c.Y, -(b.X - _c.X));
             if ((abPerp.X * c.X) + (abPerp.Y * c.Y) >= 0)
                 abPerp = -abPerp;
             if ((abPerp.X * -_c.X) + (abPerp.Y * -_c.Y) > 0) {
@@ -34,7 +34,7 @@ internal static class Collision {
                 _b = _c;
                 return abPerp;
             }
-            Vector2 ac = c - a, acPerp = new(ac.Y, -ac.X);
+            Vector2 acPerp = new(c.Y - _c.Y, -(c.X - _c.X));
             if ((acPerp.X * b.X) + (acPerp.Y * b.Y) >= 0)
                 acPerp = -acPerp;
             if ((acPerp.X * -_c.X) + (acPerp.Y * -_c.Y) > 0) {
