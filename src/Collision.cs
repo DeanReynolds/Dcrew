@@ -12,9 +12,7 @@ internal static class Collision {
             _c = default;
         }
 
-        public void Add(Vector2 v) {
-            _c = v;
-        }
+        public void Add(Vector2 v) => _c = v;
         public void Expand(Vector2 v) {
             _c = _b;
             _b = v;
