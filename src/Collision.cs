@@ -4,61 +4,46 @@ namespace Dcrew;
 
 internal static class Collision {
     internal ref struct Simplex {
-        internal int _count;
         internal Vector2 _a, _b, _c;
 
         public Simplex(Vector2 a, Vector2 b) {
             _a = a;
             _b = b;
             _c = default;
-            _count = 2;
         }
 
         public void Add(Vector2 v) {
             _c = v;
-            _count = 3;
         }
         public void Expand(Vector2 v) {
             _c = _b;
             _b = v;
-            _count = 3;
         }
 
-        public Vector2? CalcDir() {
-            Vector2 a, b, ab, abPerp;
-            if (_count == 3) {
-                a = _c;
-                var ao = -a;
-                b = _b;
-                var c = _a;
-                ab = b - a;
-                var ac = c - a;
-                abPerp = new Vector2(ab.Y, -ab.X);
-                if ((abPerp.X * c.X) + (abPerp.Y * c.Y) >= 0)
-                    abPerp = -abPerp;
-                if ((abPerp.X * ao.X) + (abPerp.Y * ao.Y) > 0) {
-                    _a = _b;
-                    _b = _c;
-                    _count = 2;
-                    return abPerp;
-                }
-                var acPerp = new Vector2(ac.Y, -ac.X);
-                if ((acPerp.X * b.X) + (acPerp.Y * b.Y) >= 0)
-                    acPerp = -acPerp;
-                if ((acPerp.X * ao.X) + (acPerp.Y * ao.Y) > 0) {
-                    _b = _c;
-                    _count = 2;
-                    return acPerp;
-                }
-                return null;
-            }
-            a = _b;
-            b = _a;
-            ab = b - a;
-            abPerp = new Vector2(ab.Y, -ab.X);
-            if ((abPerp.X * -a.X) + (abPerp.Y * -a.Y) <= 0)
+        public Vector2? CalcDir2C() {
+            Vector2 ab = _a - _b, abPerp = new(ab.Y, -ab.X);
+            if ((abPerp.X * -_b.X) + (abPerp.Y * -_b.Y) <= 0)
                 abPerp = -abPerp;
             return abPerp;
+        }
+
+        public Vector2? CalcDir3C() {
+            Vector2 a = _c, b = _b, c = _a, ab = b - a, abPerp = new(ab.Y, -ab.X);
+            if ((abPerp.X * c.X) + (abPerp.Y * c.Y) >= 0)
+                abPerp = -abPerp;
+            if ((abPerp.X * -_c.X) + (abPerp.Y * -_c.Y) > 0) {
+                _a = _b;
+                _b = _c;
+                return abPerp;
+            }
+            Vector2 ac = c - a, acPerp = new(ac.Y, -ac.X);
+            if ((acPerp.X * b.X) + (acPerp.Y * b.Y) >= 0)
+                acPerp = -acPerp;
+            if ((acPerp.X * -_c.X) + (acPerp.Y * -_c.Y) > 0) {
+                _b = _c;
+                return acPerp;
+            }
+            return null;
         }
     }
 
@@ -70,7 +55,7 @@ internal static class Collision {
                 simplex._a,
                 simplex._b
             };
-            if (simplex._count == 3)
+            if (simplex._c != default)
                 _verts.Add(simplex._c);
         }
 
@@ -99,7 +84,7 @@ internal static class Collision {
         }
     }
 
-    internal struct Edge {
+    internal ref struct Edge {
         public float Distance;
         public Vector2 Normal;
         public int Index;
@@ -116,7 +101,7 @@ internal static class Collision {
         if (Vector2.Dot(spb, dir) <= 0)
             return;
         var simplex = new Simplex(spa, spb);
-        var nd = simplex.CalcDir();
+        var nd = simplex.CalcDir2C();
         if (!nd.HasValue)
             return;
         dir = nd.Value;
@@ -125,7 +110,7 @@ internal static class Collision {
             if (Vector2.Dot(spa, dir) <= 0)
                 return;
             simplex.Add(spa);
-            nd = simplex.CalcDir();
+            nd = simplex.CalcDir3C();
             if (!nd.HasValue)
                 break;
             dir = nd.Value;
@@ -145,7 +130,7 @@ internal static class Collision {
         if (Vector2.Dot(spb, dir) <= 0)
             return;
         var simplex = new Simplex(spa, spb);
-        var nd = simplex.CalcDir();
+        var nd = simplex.CalcDir2C();
         if (!nd.HasValue)
             return;
         dir = nd.Value;
@@ -154,7 +139,7 @@ internal static class Collision {
             if (Vector2.Dot(spa, dir) <= 0)
                 return;
             simplex.Add(spa);
-            nd = simplex.CalcDir();
+            nd = simplex.CalcDir3C();
             if (!nd.HasValue)
                 break;
             dir = nd.Value;
@@ -186,7 +171,7 @@ internal static class Collision {
         if (Vector2.Dot(spb, dir) <= 0)
             return;
         var simplex = new Simplex(spa, spb);
-        var nd = simplex.CalcDir();
+        var nd = simplex.CalcDir2C();
         if (!nd.HasValue)
             return;
         dir = nd.Value;
@@ -195,7 +180,7 @@ internal static class Collision {
             if (Vector2.Dot(spa, dir) <= 0)
                 return;
             simplex.Add(spa);
-            nd = simplex.CalcDir();
+            nd = simplex.CalcDir3C();
             if (!nd.HasValue)
                 break;
             dir = nd.Value;
@@ -215,7 +200,7 @@ internal static class Collision {
         if (Vector2.Dot(spb, dir) <= 0)
             return;
         var simplex = new Simplex(spa, spb);
-        var nd = simplex.CalcDir();
+        var nd = simplex.CalcDir2C();
         if (!nd.HasValue)
             return;
         dir = nd.Value;
@@ -224,7 +209,7 @@ internal static class Collision {
             if (Vector2.Dot(spa, dir) <= 0)
                 return;
             simplex.Add(spa);
-            nd = simplex.CalcDir();
+            nd = simplex.CalcDir3C();
             if (!nd.HasValue)
                 break;
             dir = nd.Value;
@@ -256,7 +241,7 @@ internal static class Collision {
         if (Vector2.Dot(spb, dir) <= 0)
             return;
         var simplex = new Simplex(spa, spb);
-        var nd = simplex.CalcDir();
+        var nd = simplex.CalcDir2C();
         if (!nd.HasValue)
             return;
         dir = nd.Value;
@@ -265,7 +250,7 @@ internal static class Collision {
             if (Vector2.Dot(spa, dir) <= 0)
                 return;
             simplex.Add(spa);
-            nd = simplex.CalcDir();
+            nd = simplex.CalcDir3C();
             if (!nd.HasValue)
                 break;
             dir = nd.Value;
@@ -285,7 +270,7 @@ internal static class Collision {
         if (Vector2.Dot(spb, dir) <= 0)
             return;
         var simplex = new Simplex(spa, spb);
-        var nd = simplex.CalcDir();
+        var nd = simplex.CalcDir2C();
         if (!nd.HasValue)
             return;
         dir = nd.Value;
@@ -294,7 +279,7 @@ internal static class Collision {
             if (Vector2.Dot(spa, dir) <= 0)
                 return;
             simplex.Add(spa);
-            nd = simplex.CalcDir();
+            nd = simplex.CalcDir3C();
             if (!nd.HasValue)
                 break;
             dir = nd.Value;
@@ -326,7 +311,7 @@ internal static class Collision {
         if (Vector2.Dot(spb, dir) <= 0)
             return;
         var simplex = new Simplex(spa, spb);
-        var nd = simplex.CalcDir();
+        var nd = simplex.CalcDir2C();
         if (!nd.HasValue)
             return;
         dir = nd.Value;
@@ -335,7 +320,7 @@ internal static class Collision {
             if (Vector2.Dot(spa, dir) <= 0)
                 return;
             simplex.Add(spa);
-            nd = simplex.CalcDir();
+            nd = simplex.CalcDir3C();
             if (!nd.HasValue)
                 break;
             dir = nd.Value;
@@ -355,7 +340,7 @@ internal static class Collision {
         if (Vector2.Dot(spb, dir) <= 0)
             return;
         var simplex = new Simplex(spa, spb);
-        var nd = simplex.CalcDir();
+        var nd = simplex.CalcDir2C();
         if (!nd.HasValue)
             return;
         dir = nd.Value;
@@ -364,7 +349,7 @@ internal static class Collision {
             if (Vector2.Dot(spa, dir) <= 0)
                 return;
             simplex.Add(spa);
-            nd = simplex.CalcDir();
+            nd = simplex.CalcDir3C();
             if (!nd.HasValue)
                 break;
             dir = nd.Value;
