@@ -12,13 +12,8 @@ internal static class Collision {
             _c = default;
         }
 
-        public Vector2 CalcDir2C() {
-            Vector2 abPerp = new(_a.Y - _b.Y, -(_a.X - _b.X));
-            return (abPerp.X * -_b.X) + (abPerp.Y * -_b.Y) <= 0 ? -abPerp : abPerp;
-        }
-
-        public bool CalcDir3C(out Vector2 r) {
-            Vector2 b = _b, c = _a, abPerp = new(b.Y - _c.Y, -(b.X - _c.X));
+        public bool CalcDir(out Vector2 r) {
+            Vector2 b = _b, c = _a, abPerp = new(b.Y - _c.Y, _c.X - b.X);
             if ((abPerp.X * c.X) + (abPerp.Y * c.Y) >= 0)
                 abPerp = -abPerp;
             if ((abPerp.X * -_c.X) + (abPerp.Y * -_c.Y) > 0) {
@@ -27,7 +22,7 @@ internal static class Collision {
                 r = abPerp;
                 return true;
             }
-            Vector2 acPerp = new(c.Y - _c.Y, -(c.X - _c.X));
+            Vector2 acPerp = new(c.Y - _c.Y, _c.X - c.X);
             if ((acPerp.X * b.X) + (acPerp.Y * b.Y) >= 0)
                 acPerp = -acPerp;
             if ((acPerp.X * -_c.X) + (acPerp.Y * -_c.Y) > 0) {
@@ -59,9 +54,8 @@ internal static class Collision {
             for (int i = 0; i < _verts.Count; i++) {
                 int j = i == _verts.Count - 1 ? 0 : i + 1;
                 Vector2 a = _verts[i], b = _verts[j];
-                var e = b - a;
-                var normal = Vector2.Normalize(new Vector2(e.Y, -e.X));
-                var d = Vector2.Dot(normal, a);
+                var normal = Vector2.Normalize(new Vector2(b.Y - a.Y, a.X - b.X));
+                var d = (normal.X * a.X) + (normal.Y * a.Y);
                 if (d < 0) {
                     d = -d;
                     normal *= -1;
@@ -82,49 +76,48 @@ internal static class Collision {
         public int Index;
     }
 
-    public static unsafe void GJK(Span<Vector2> verts1, delegate*<Span<Vector2>, Vector2, Vector2> farthestPoint1, Span<Vector2> verts2, delegate*<Span<Vector2>, Vector2, Vector2> farthestPoint2, out bool intersects) {
-        intersects = false;
+    public static unsafe bool GJK(Span<Vector2> verts1, delegate*<Span<Vector2>, Vector2, Vector2> farthestPoint1, Span<Vector2> verts2, delegate*<Span<Vector2>, Vector2, Vector2> farthestPoint2) {
         Vector2 dir = new(0, 1);
         var spa = farthestPoint1(verts1, dir) - farthestPoint2(verts2, -dir);
         if (spa.Y <= 0)
-            return;
+            return false;
         var spb = farthestPoint1(verts1, -dir) - farthestPoint2(verts2, dir);
         if (-spb.Y <= 0)
-            return;
+            return false;
+        Vector2 abPerp = new(spa.Y - spb.Y, spb.X - spa.X);
+        dir = (abPerp.X * -spb.X) + (abPerp.Y * -spb.Y) <= 0 ? -abPerp : abPerp;
         var simplex = new Simplex(spa, spb);
-        dir = simplex.CalcDir2C();
         do {
             spa = farthestPoint1(verts1, dir) - farthestPoint2(verts2, -dir);
             if ((spa.X * dir.X) + (spa.Y * dir.Y) <= 0)
-                return;
+                return false;
             simplex._c = spa;
-            if (!simplex.CalcDir3C(out dir))
+            if (!simplex.CalcDir(out dir))
                 break;
         } while (true);
-        intersects = true;
+        return true;
     }
 
-    public static unsafe void GJK(Span<Vector2> verts1, delegate*<Span<Vector2>, Vector2, Vector2> farthestPoint1, Span<Vector2> verts2, delegate*<Span<Vector2>, Vector2, Vector2> farthestPoint2, out bool intersects, out CollisionResolution res) {
-        intersects = false;
+    public static unsafe bool GJK(Span<Vector2> verts1, delegate*<Span<Vector2>, Vector2, Vector2> farthestPoint1, Span<Vector2> verts2, delegate*<Span<Vector2>, Vector2, Vector2> farthestPoint2, out CollisionResolution res) {
         res = new CollisionResolution();
         Vector2 dir = new(0, 1);
         var spa = farthestPoint1(verts1, dir) - farthestPoint2(verts2, -dir);
         if (spa.Y <= 0)
-            return;
+            return false;
         var spb = farthestPoint1(verts1, -dir) - farthestPoint2(verts2, dir);
         if (-spb.Y <= 0)
-            return;
+            return false;
+        Vector2 abPerp = new(spa.Y - spb.Y, spb.X - spa.X);
+        dir = (abPerp.X * -spb.X) + (abPerp.Y * -spb.Y) <= 0 ? -abPerp : abPerp;
         var simplex = new Simplex(spa, spb);
-        dir = simplex.CalcDir2C();
         do {
             spa = farthestPoint1(verts1, dir) - farthestPoint2(verts2, -dir);
             if ((spa.X * dir.X) + (spa.Y * dir.Y) <= 0)
-                return;
+                return false;
             simplex._c = spa;
-            if (!simplex.CalcDir3C(out dir))
+            if (!simplex.CalcDir(out dir))
                 break;
         } while (true);
-        intersects = true;
         Edge edge;
         Polytope polytope = new(simplex);
         do {
@@ -137,5 +130,6 @@ internal static class Collision {
         } while (edge.Distance == float.PositiveInfinity);
         res.Normal = edge.Normal;
         res.Depth = edge.Distance + .001f;
+        return true;
     }
 }
