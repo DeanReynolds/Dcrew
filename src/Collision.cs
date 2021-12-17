@@ -20,28 +20,29 @@ internal static class Collision {
 
         public Vector2 CalcDir2C() {
             Vector2 abPerp = new(_a.Y - _b.Y, -(_a.X - _b.X));
-            if ((abPerp.X * -_b.X) + (abPerp.Y * -_b.Y) <= 0)
-                abPerp = -abPerp;
-            return abPerp;
+            return (abPerp.X * -_b.X) + (abPerp.Y * -_b.Y) <= 0 ? -abPerp : abPerp;
         }
 
-        public Vector2? CalcDir3C() {
+        public bool CalcDir3C(out Vector2 r) {
             Vector2 b = _b, c = _a, abPerp = new(b.Y - _c.Y, -(b.X - _c.X));
             if ((abPerp.X * c.X) + (abPerp.Y * c.Y) >= 0)
                 abPerp = -abPerp;
             if ((abPerp.X * -_c.X) + (abPerp.Y * -_c.Y) > 0) {
                 _a = _b;
                 _b = _c;
-                return abPerp;
+                r = abPerp;
+                return true;
             }
             Vector2 acPerp = new(c.Y - _c.Y, -(c.X - _c.X));
             if ((acPerp.X * b.X) + (acPerp.Y * b.Y) >= 0)
                 acPerp = -acPerp;
             if ((acPerp.X * -_c.X) + (acPerp.Y * -_c.Y) > 0) {
                 _b = _c;
-                return acPerp;
+                r = acPerp;
+                return true;
             }
-            return null;
+            r = Vector2.Zero;
+            return false;
         }
     }
 
@@ -104,10 +105,8 @@ internal static class Collision {
             if (Vector2.Dot(spa, dir) <= 0)
                 return;
             simplex.Add(spa);
-            var nd = simplex.CalcDir3C();
-            if (!nd.HasValue)
+            if (!simplex.CalcDir3C(out dir))
                 break;
-            dir = nd.Value;
         } while (true);
         intersects = true;
     }
@@ -130,10 +129,8 @@ internal static class Collision {
             if (Vector2.Dot(spa, dir) <= 0)
                 return;
             simplex.Add(spa);
-            var nd = simplex.CalcDir3C();
-            if (!nd.HasValue)
+            if (!simplex.CalcDir3C(out dir))
                 break;
-            dir = nd.Value;
         } while (true);
         intersects = true;
         Edge edge;
