@@ -122,8 +122,6 @@ public struct Quad {
         return Intersects(new Quad(otl, otr, obr, obl), out res);
     }
     /// <summary>Gets whether or not the given <see cref="Quad"/> intersects with this <see cref="Quad"/></summary>
-    
-    
     public unsafe bool Intersects(Quad value) => Collision.GJK(stackalloc[] { A, B, C, D }, &FarthestPoint, stackalloc[] { value.A, value.B, value.C, value.D }, &Quad.FarthestPoint);
     /// <summary>Gets whether or not the given <see cref="Quad"/> intersects with this <see cref="Quad"/></summary>
     public unsafe bool Intersects(Quad value, out CollisionResolution res) => Collision.GJK(stackalloc[] { A, B, C, D }, &FarthestPoint, stackalloc[] { value.A, value.B, value.C, value.D }, &Quad.FarthestPoint, out res);
