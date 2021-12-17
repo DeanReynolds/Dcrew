@@ -12,12 +12,6 @@ internal static class Collision {
             _c = default;
         }
 
-        public void Add(Vector2 v) => _c = v;
-        public void Expand(Vector2 v) {
-            _c = _b;
-            _b = v;
-        }
-
         public Vector2 CalcDir2C() {
             Vector2 abPerp = new(_a.Y - _b.Y, -(_a.X - _b.X));
             return (abPerp.X * -_b.X) + (abPerp.Y * -_b.Y) <= 0 ? -abPerp : abPerp;
@@ -92,19 +86,18 @@ internal static class Collision {
         intersects = false;
         Vector2 dir = new(0, 1);
         var spa = farthestPoint1(verts1, dir) - farthestPoint2(verts2, -dir);
-        if (Vector2.Dot(spa, dir) <= 0)
+        if (spa.Y <= 0)
             return;
-        dir = -dir;
-        var spb = farthestPoint1(verts1, dir) - farthestPoint2(verts2, -dir);
-        if (Vector2.Dot(spb, dir) <= 0)
+        var spb = farthestPoint1(verts1, -dir) - farthestPoint2(verts2, dir);
+        if (-spb.Y <= 0)
             return;
         var simplex = new Simplex(spa, spb);
         dir = simplex.CalcDir2C();
         do {
             spa = farthestPoint1(verts1, dir) - farthestPoint2(verts2, -dir);
-            if (Vector2.Dot(spa, dir) <= 0)
+            if ((spa.X * dir.X) + (spa.Y * dir.Y) <= 0)
                 return;
-            simplex.Add(spa);
+            simplex._c = spa;
             if (!simplex.CalcDir3C(out dir))
                 break;
         } while (true);
@@ -116,19 +109,18 @@ internal static class Collision {
         res = new CollisionResolution();
         Vector2 dir = new(0, 1);
         var spa = farthestPoint1(verts1, dir) - farthestPoint2(verts2, -dir);
-        if (Vector2.Dot(spa, dir) <= 0)
+        if (spa.Y <= 0)
             return;
-        dir = -dir;
-        var spb = farthestPoint1(verts1, dir) - farthestPoint2(verts2, -dir);
-        if (Vector2.Dot(spb, dir) <= 0)
+        var spb = farthestPoint1(verts1, -dir) - farthestPoint2(verts2, dir);
+        if (-spb.Y <= 0)
             return;
         var simplex = new Simplex(spa, spb);
         dir = simplex.CalcDir2C();
         do {
             spa = farthestPoint1(verts1, dir) - farthestPoint2(verts2, -dir);
-            if (Vector2.Dot(spa, dir) <= 0)
+            if ((spa.X * dir.X) + (spa.Y * dir.Y) <= 0)
                 return;
-            simplex.Add(spa);
+            simplex._c = spa;
             if (!simplex.CalcDir3C(out dir))
                 break;
         } while (true);
@@ -137,11 +129,10 @@ internal static class Collision {
         Polytope polytope = new(simplex);
         do {
             edge = polytope.GetClosestEdge();
-            var sp = farthestPoint1(verts1, edge.Normal) - farthestPoint2(verts2, -edge.Normal);
-            var d = Vector2.Dot(sp, edge.Normal);
-            if (MathF.Abs(d - edge.Distance) > .001f) {
+            spa = farthestPoint1(verts1, edge.Normal) - farthestPoint2(verts2, -edge.Normal);
+            if (MathF.Abs((spa.X * edge.Normal.X) + (spa.Y * edge.Normal.Y) - edge.Distance) > .001f) {
                 edge.Distance = float.PositiveInfinity;
-                polytope.Insert(edge.Index, sp);
+                polytope.Insert(edge.Index, spa);
             }
         } while (edge.Distance == float.PositiveInfinity);
         res.Normal = edge.Normal;
