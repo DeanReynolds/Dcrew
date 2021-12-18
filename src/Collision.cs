@@ -36,24 +36,32 @@ internal static class Collision {
     }
 
     internal ref struct Polytope {
-        readonly List<Vector2> _verts;
+        public Vector2[] Verts;
+        public byte Count;
 
         public Polytope(Simplex simplex) {
-            _verts = new List<Vector2>(4) {
+            Verts = new[] {
                 simplex._a,
                 simplex._b,
                 simplex._c
             };
+            Count = 3;
         }
 
-        public void Insert(int i, Vector2 v) => _verts.Insert(i, v);
+        public void Insert(int i, Vector2 v) {
+            if (Count == Verts.Length)
+                Array.Resize(ref Verts, Count + 1);
+            Array.Copy(Verts, i, Verts, i + 1, Count - i);
+            Verts[i] = v;
+            Count++;
+        }
 
         public Edge GetClosestEdge() {
             Edge closest = new();
             closest.Distance = float.PositiveInfinity;
-            for (int i = 0; i < _verts.Count; i++) {
-                int j = i == _verts.Count - 1 ? 0 : i + 1;
-                Vector2 a = _verts[i], b = _verts[j];
+            for (int i = 0; i < Count; i++) {
+                int j = i == Count - 1 ? 0 : i + 1;
+                Vector2 a = Verts[i], b = Verts[j];
                 var normal = Vector2.Normalize(new Vector2(b.Y - a.Y, a.X - b.X));
                 var d = (normal.X * a.X) + (normal.Y * a.Y);
                 if (d < 0) {
