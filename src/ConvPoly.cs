@@ -191,9 +191,10 @@ public struct ConvPoly {
                 if (!IsLeft(Verts[i], Verts[i + 1], v))
                     return false;
             }
-            return !IsLeft(Verts[0], Verts[^1], v);
+            if (!IsLeft(Verts[^1], Verts[0], v))
+                return false;
         }
-        return false;
+        return true;
     }
 
     /// <summary>Changes all corners of this <see cref="ConvPoly"/></summary>
