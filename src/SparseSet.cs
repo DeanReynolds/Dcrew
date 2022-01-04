@@ -5,7 +5,8 @@ public struct SparseSet {
     int[] _dense;
     int[] _sparse;
     public int Count { get; private set; }
-    public int Max => _sparse.Length;
+    public int MaxComponents => _dense.Length;
+    public int MaxEntities => _sparse.Length;
 
     public SparseSet(int maxEntities, int maxComponents) {
         _dense = new int[maxComponents];
@@ -13,11 +14,20 @@ public struct SparseSet {
         Count = 0;
     }
 
-    /// <summary>Add <paramref name="i"/> to this set</summary>
+    /// <summary>Add <paramref name="i"/> to this set
+    /// 
+    /// Call <see cref="EnsureFits(int, int)"/> before this if you may need to expand</summary>
     public void Add(int i) {
         _dense[Count] = i;
         _sparse[i] = Count;
         Count++;
+    }
+    /// <summary>Auto expand this set by <paramref name="expandBy"/> if <paramref name="i"/> won't fit</summary>
+    public void EnsureFits(int i, int expandBy = 1) {
+        if (_sparse.Length <= i)
+            Array.Resize(ref _sparse, i + expandBy);
+        if (Count >= _dense.Length)
+            Array.Resize(ref _dense, Count + expandBy);
     }
     /// <summary>Remove <paramref name="i"/> from this set</summary>
     public void Remove(int i) {
@@ -48,7 +58,8 @@ public struct SparseSet<T> {
     T[] _item;
     int[] _sparse;
     public int Count { get; private set; }
-    public int Max => _sparse.Length;
+    public int MaxComponents => _dense.Length;
+    public int MaxEntities => _sparse.Length;
 
     public SparseSet(int maxEntities, int maxComponents) {
         _dense = new int[maxComponents];
@@ -67,7 +78,9 @@ public struct SparseSet<T> {
         r = item;
         return ref r;
     }
-    /// <summary>Add <paramref name="i"/> to this set and set its item to <paramref name="item"/> and return a ref to it</summary>
+    /// <summary>Add <paramref name="i"/> to this set and set its item to <paramref name="item"/> and return a ref to it
+    /// 
+    /// Call <see cref="EnsureFits(int, int)"/> before this if you may need to expand</summary>
     public ref T Add(int i, T item) {
         _dense[Count] = i;
         ref var r = ref _item[Count];
@@ -75,11 +88,20 @@ public struct SparseSet<T> {
         _sparse[i] = Count++;
         return ref r;
     }
-    /// <summary>Add <paramref name="i"/> to this set and return a ref to its item</summary>
+    /// <summary>Add <paramref name="i"/> to this set and return a ref to its item
+    /// 
+    /// Call <see cref="EnsureFits(int, int)"/> before this if you may need to expand</summary>
     public ref T Add(int i) {
         _dense[Count] = i;
         _sparse[i] = Count;
         return ref _item[Count++];
+    }
+    /// <summary>Auto expand this set by <paramref name="expandBy"/> if <paramref name="i"/> won't fit</summary>
+    public void EnsureFits(int i, int expandBy = 1) {
+        if (_sparse.Length <= i)
+            Array.Resize(ref _sparse, i + expandBy);
+        if (Count >= _dense.Length)
+            Array.Resize(ref _dense, Count + expandBy);
     }
     /// <summary>Remove <paramref name="i"/> from this set</summary>
     public void Remove(int i) {
