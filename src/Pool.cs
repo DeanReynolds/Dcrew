@@ -24,7 +24,7 @@ public static class Pool<T> where T : class, new() {
             _arr[Count++] = new T();
     }
 
-    /// <summary>Returns a free instance of <typeparamref name="T"/> and auto-expands if there's none available</summary>
+    /// <summary>Returns a free instance of <typeparamref name="T"/> and returns a new one if there's none available</summary>
     public static T Spawn() {
         if (Count == 0)
             return new T();
