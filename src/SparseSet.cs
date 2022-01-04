@@ -43,7 +43,7 @@ public struct SparseSet {
 }
 
 /// <summary>A simple sparse set with items</summary>
-public struct SparseSet<T> where T : struct {
+public struct SparseSet<T> {
     int[] _dense;
     T[] _item;
     int[] _sparse;
@@ -86,7 +86,9 @@ public struct SparseSet<T> where T : struct {
         int v = _sparse[i];
         int temp = _dense[--Count];
         _dense[v] = temp;
+        ref var r = ref _item[v];
         _item[v] = _item[Count];
+        _item[Count] = default;
         _sparse[temp] = v;
     }
     public ref T this[int i] => ref _item[_sparse[i]];
