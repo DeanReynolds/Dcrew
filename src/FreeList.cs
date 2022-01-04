@@ -59,7 +59,7 @@ public struct FreeList {
 }
 
 /// <summary>A <see cref="SparseSet"/> with the ability to add without giving an index</summary>
-public struct FreeList<T> where T : struct {
+public struct FreeList<T> {
     SparseSet<T> _set;
     int _free;
     int[] _next;
