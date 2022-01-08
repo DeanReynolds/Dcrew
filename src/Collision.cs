@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using System.Buffers;
 
 namespace Dcrew;
 
@@ -35,24 +36,29 @@ internal static class Collision {
         }
     }
 
-    internal ref struct Polytope {
-        public Vector2[] Verts;
+    internal unsafe ref struct Polytope {
+        public fixed float X[256];
+        public fixed float Y[256];
         public byte Count;
 
         public Polytope(Simplex simplex) {
-            Verts = new[] {
-                simplex._a,
-                simplex._b,
-                simplex._c
-            };
+            X[0] = simplex._a.X;
+            Y[0] = simplex._a.Y;
+            X[1] = simplex._b.X;
+            Y[1] = simplex._b.Y;
+            X[2] = simplex._c.X;
+            Y[2] = simplex._c.Y;
             Count = 3;
         }
 
         public void Insert(int i, Vector2 v) {
-            if (Count == Verts.Length)
-                Array.Resize(ref Verts, Count + 1);
-            Array.Copy(Verts, i, Verts, i + 1, Count - i);
-            Verts[i] = v;
+            for (int j = 254; j >= i; j--) {
+                var k = j + 1;
+                X[k] = X[j];
+                Y[k] = Y[j];
+            }
+            X[i] = v.X;
+            Y[i] = v.Y;
             Count++;
         }
 
@@ -61,7 +67,7 @@ internal static class Collision {
             closest.Distance = float.PositiveInfinity;
             for (int i = 0; i < Count; i++) {
                 int j = i == Count - 1 ? 0 : i + 1;
-                Vector2 a = Verts[i], b = Verts[j];
+                Vector2 a = new Vector2(X[i], Y[i]), b = new Vector2(X[j], Y[j]);
                 var normal = Vector2.Normalize(new Vector2(b.Y - a.Y, a.X - b.X));
                 var d = (normal.X * a.X) + (normal.Y * a.Y);
                 if (d < 0) {
