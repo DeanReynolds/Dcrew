@@ -303,7 +303,7 @@ public struct Quadtree {
             n = ref _node[ni];
         } while (true);
     }
-    public void Draw(SpriteBatch spriteBatch, RectStyle style, float thickness = 1) {
+    public void Draw(SpriteBatch spriteBatch, RectStyle style, float thickness = 1, float opacity = .5f) {
         int ni = 0;
         ref readonly var n = ref _node[ni];
         do {
@@ -315,13 +315,116 @@ public struct Quadtree {
                 _toProcess.Push(c + 3);
             } else if (n.Child > 0) {
                 ref readonly var j = ref _item[n.Child - 1];
-                spriteBatch.DrawRectangle(j.X, j.Y, j.Width, j.Height, Color.LawnGreen * .5f, style, thickness: thickness, layerDepth: 1);
+                spriteBatch.DrawRectangle(j.X, j.Y, j.Width, j.Height, Color.LawnGreen * opacity, style, thickness: thickness, layerDepth: 1);
                 while (j.Next != -1) {
                     j = ref _item[j.Next];
-                    spriteBatch.DrawRectangle(j.X, j.Y, j.Width, j.Height, Color.LawnGreen * .5f, style, thickness: thickness, layerDepth: 1);
+                    spriteBatch.DrawRectangle(j.X, j.Y, j.Width, j.Height, Color.LawnGreen * opacity, style, thickness: thickness, layerDepth: 1);
                 }
             }
-            spriteBatch.DrawRectangle(n.X, n.Y, n.Width, n.Height, Color.Blue * .5f, style, thickness: thickness, layerDepth: 1);
+            spriteBatch.DrawRectangle(n.X, n.Y, n.Width, n.Height, Color.Blue * opacity, style, thickness: thickness, layerDepth: 1);
+            if (_toProcess.Count <= 0)
+                break;
+            ni = _toProcess.Pop();
+            n = ref _node[ni];
+        } while (true);
+    }
+    public void Draw(SpriteBatch spriteBatch, Rectangle area, RectStyle style, float thickness = 1, float opacity = .5f) => Draw(spriteBatch, new Quad(area), style, thickness, opacity);
+    public void Draw(SpriteBatch spriteBatch, RotRect area, RectStyle style, float thickness = 1, float opacity = .5f) {
+        int ni = 0;
+        ref readonly var n = ref _node[ni];
+        do {
+            if (n.Child < 0) {
+                int c = Math.Abs(n.Child);
+                Node nw = _node[c],
+                    ne = _node[c + 1],
+                    sw = _node[c + 2],
+                    se = _node[c + 3];
+                if (area.Intersects(new Quad(nw.X, nw.Y, nw.Width, nw.Height)))
+                    _toProcess.Push(c);
+                if (area.Intersects(new Quad(ne.X, ne.Y, ne.Width, ne.Height)))
+                    _toProcess.Push(c + 1);
+                if (area.Intersects(new Quad(sw.X, sw.Y, sw.Width, sw.Height)))
+                    _toProcess.Push(c + 2);
+                if (area.Intersects(new Quad(se.X, se.Y, se.Width, se.Height)))
+                    _toProcess.Push(c + 3);
+            } else if (n.Child > 0) {
+                int i = n.Child - 1;
+                do {
+                    ref readonly var item = ref _item[i];
+                    if (area.Intersects(new Quad(item.X, item.Y, item.Width, item.Height)))
+                        spriteBatch.DrawRectangle(item.X, item.Y, item.Width, item.Height, Color.LawnGreen * opacity, style, thickness: thickness, layerDepth: 1);
+                    i = item.Next;
+                } while (i != -1);
+            }
+            spriteBatch.DrawRectangle(n.X, n.Y, n.Width, n.Height, Color.Blue * opacity, style, thickness: thickness, layerDepth: 1);
+            if (_toProcess.Count <= 0)
+                break;
+            ni = _toProcess.Pop();
+            n = ref _node[ni];
+        } while (true);
+    }
+    public void Draw(SpriteBatch spriteBatch, Quad area, RectStyle style, float thickness = 1, float opacity = .5f) {
+        int ni = 0;
+        ref readonly var n = ref _node[ni];
+        do {
+            if (n.Child < 0) {
+                int c = Math.Abs(n.Child);
+                Node nw = _node[c],
+                    ne = _node[c + 1],
+                    sw = _node[c + 2],
+                    se = _node[c + 3];
+                if (area.Intersects(new Quad(nw.X, nw.Y, nw.Width, nw.Height)))
+                    _toProcess.Push(c);
+                if (area.Intersects(new Quad(ne.X, ne.Y, ne.Width, ne.Height)))
+                    _toProcess.Push(c + 1);
+                if (area.Intersects(new Quad(sw.X, sw.Y, sw.Width, sw.Height)))
+                    _toProcess.Push(c + 2);
+                if (area.Intersects(new Quad(se.X, se.Y, se.Width, se.Height)))
+                    _toProcess.Push(c + 3);
+            } else if (n.Child > 0) {
+                int i = n.Child - 1;
+                do {
+                    ref readonly var item = ref _item[i];
+                    if (area.Intersects(new Quad(item.X, item.Y, item.Width, item.Height)))
+                        spriteBatch.DrawRectangle(item.X, item.Y, item.Width, item.Height, Color.LawnGreen * opacity, style, thickness: thickness, layerDepth: 1);
+                    i = item.Next;
+                } while (i != -1);
+            }
+            spriteBatch.DrawRectangle(n.X, n.Y, n.Width, n.Height, Color.Blue * opacity, style, thickness: thickness, layerDepth: 1);
+            if (_toProcess.Count <= 0)
+                break;
+            ni = _toProcess.Pop();
+            n = ref _node[ni];
+        } while (true);
+    }
+    public void Draw(SpriteBatch spriteBatch, ConvPoly area, RectStyle style, float thickness = 1, float opacity = .5f) {
+        int ni = 0;
+        ref readonly var n = ref _node[ni];
+        do {
+            if (n.Child < 0) {
+                int c = Math.Abs(n.Child);
+                Node nw = _node[c],
+                    ne = _node[c + 1],
+                    sw = _node[c + 2],
+                    se = _node[c + 3];
+                if (area.Intersects(new Quad(nw.X, nw.Y, nw.Width, nw.Height)))
+                    _toProcess.Push(c);
+                if (area.Intersects(new Quad(ne.X, ne.Y, ne.Width, ne.Height)))
+                    _toProcess.Push(c + 1);
+                if (area.Intersects(new Quad(sw.X, sw.Y, sw.Width, sw.Height)))
+                    _toProcess.Push(c + 2);
+                if (area.Intersects(new Quad(se.X, se.Y, se.Width, se.Height)))
+                    _toProcess.Push(c + 3);
+            } else if (n.Child > 0) {
+                int i = n.Child - 1;
+                do {
+                    ref readonly var item = ref _item[i];
+                    if (area.Intersects(new Quad(item.X, item.Y, item.Width, item.Height)))
+                        spriteBatch.DrawRectangle(item.X, item.Y, item.Width, item.Height, Color.LawnGreen * opacity, style, thickness: thickness, layerDepth: 1);
+                    i = item.Next;
+                } while (i != -1);
+            }
+            spriteBatch.DrawRectangle(n.X, n.Y, n.Width, n.Height, Color.Blue * opacity, style, thickness: thickness, layerDepth: 1);
             if (_toProcess.Count <= 0)
                 break;
             ni = _toProcess.Pop();
