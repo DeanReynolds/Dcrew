@@ -52,7 +52,7 @@ internal static class Collision {
         }
 
         public void Insert(int i, Vector2 v) {
-            for (int j = 254; j >= i; j--) {
+            for (int j = Count - 1; j >= i; j--) {
                 var k = j + 1;
                 X[k] = X[j];
                 Y[k] = Y[j];

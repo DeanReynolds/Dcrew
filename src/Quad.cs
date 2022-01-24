@@ -72,6 +72,15 @@ public struct Quad {
         _rotation = 0;
         _xy = Vector2.Zero;
     }
+    public Quad(float x, float y, float width, float height) {
+        A = new(x, y);
+        B = new(x + width, y);
+        C = new(B.X, y + height);
+        D = new(A.X, C.Y);
+        _rotation = 0;
+        _xy = Vector2.Zero;
+    }
+    public Quad(Rectangle rect) : this(rect.X, rect.Y, rect.Width, rect.Height) { }
 
     /// <summary>Gets whether or not the given <see cref="Line"/> intersects with this <see cref="Quad"/></summary>
     public unsafe bool Intersects(Line value) => Collision.GJK(stackalloc[] { A, B, C, D }, &FarthestPoint, stackalloc[] { value.A, value.B }, &Line.FarthestPoint);

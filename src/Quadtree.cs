@@ -30,6 +30,30 @@ public struct Quadtree {
         public int Next, Node;
     }
 
+    public struct QueryList : IDisposable {
+        readonly int[] _item;
+        readonly int _count;
+
+        public int Count => _count;
+        public ReadOnlySpan<int> All => new(_item, 0, _count);
+
+        public QueryList(int[] item, int count) {
+            _item = item;
+            _count = count;
+        }
+
+        public bool Has(int i) {
+            for (int j = 0; j < _count; j++)
+                if (_item[j] == i)
+                    return true;
+            return false;
+        }
+
+        public void Dispose() {
+            ArrayPool<int>.Shared.Return(_item);
+        }
+    }
+
     float _x, _y, _width, _height;
     readonly byte _maxDepth;
     readonly Node[] _node;
@@ -94,14 +118,14 @@ public struct Quadtree {
         if ((y + (height * .5f)) - _newY > _newHeight)
             _newHeight = (y + (height * .5f)) - _newY;
         ref var item = ref _item[i];
+        item.X = x;
+        item.Y = y;
+        item.Width = width;
+        item.Height = height;
         var newNode = FindNode(x + (width * .5f), y + (height * .5f));
         if (item.Next != -2) {
             ref var n = ref _node[item.Node];
             if (newNode == item.Node) {
-                item.X = x;
-                item.Y = y;
-                item.Width = width;
-                item.Height = height;
                 PropagateUnion(ref n, x, y, width, height);
                 return;
             }
@@ -119,10 +143,6 @@ public struct Quadtree {
             }
         }
         item.Next = -1;
-        item.X = x;
-        item.Y = y;
-        item.Width = width;
-        item.Height = height;
         item.Node = newNode;
         ref var node = ref _node[newNode];
         int itemCount = 1;
@@ -283,9 +303,9 @@ public struct Quadtree {
             n = ref _node[ni];
         } while (true);
     }
-    public void Draw(SpriteBatch spriteBatch,RectStyle style,float thickness=1) {
+    public void Draw(SpriteBatch spriteBatch, RectStyle style, float thickness = 1) {
         int ni = 0;
-        ref var n = ref _node[ni];
+        ref readonly var n = ref _node[ni];
         do {
             if (n.Child < 0) {
                 int c = Math.Abs(n.Child);
@@ -294,8 +314,8 @@ public struct Quadtree {
                 _toProcess.Push(c + 2);
                 _toProcess.Push(c + 3);
             } else if (n.Child > 0) {
-                ref var j = ref _item[n.Child - 1];
-                spriteBatch.DrawRectangle(j.X, j.Y, j.Width, j.Height, Color.LawnGreen * .5f, style,thickness:thickness, layerDepth: 1);
+                ref readonly var j = ref _item[n.Child - 1];
+                spriteBatch.DrawRectangle(j.X, j.Y, j.Width, j.Height, Color.LawnGreen * .5f, style, thickness: thickness, layerDepth: 1);
                 while (j.Next != -1) {
                     j = ref _item[j.Next];
                     spriteBatch.DrawRectangle(j.X, j.Y, j.Width, j.Height, Color.LawnGreen * .5f, style, thickness: thickness, layerDepth: 1);
@@ -310,9 +330,9 @@ public struct Quadtree {
     }
 
     /// <summary>Query and return a collection of ids that intersect the given rectangle</summary>
-    public ReadOnlySpan<int> Query(Rectangle rect) { return Query(rect.X, rect.Y, rect.Width, rect.Height); }
+    public QueryList Query(Rectangle rect) { return Query(rect.X, rect.Y, rect.Width, rect.Height); }
     /// <summary>Query and return a collection of ids that intersect the given rectangle</summary>
-    public ReadOnlySpan<int> Query(float x, float y, float width, float height) {
+    public QueryList Query(float x, float y, float width, float height) {
         float right = x + width,
             bottom = y + height;
         var yield = ArrayPool<int>.Shared.Rent(_item.Length);
@@ -346,71 +366,17 @@ public struct Quadtree {
                 break;
             n = ref _node[_toProcess.Pop()];
         } while (true);
-        ArrayPool<int>.Shared.Return(yield);
-        return new ReadOnlySpan<int>(yield, 0, totalItems);
+        return new QueryList(yield, totalItems);
     }
     /// <summary>Query and return a collection of ids that intersect the given rectangle</summary>
-    public ReadOnlySpan<int> Query(Rectangle rect, float rotation, float originX, float originY) { return Query(rect.X, rect.Y, rect.Width, rect.Height, rotation, originX, originY); }
+    public QueryList Query(Rectangle rect, float rotation, float originX, float originY) { return Query(rect.X, rect.Y, rect.Width, rect.Height, rotation, originX, originY); }
     /// <summary>Query and return a collection of ids that intersect the given rectangle</summary>
-    public ReadOnlySpan<int> Query(Rectangle rect, float rotation, Vector2 origin) { return Query(rect.X, rect.Y, rect.Width, rect.Height, rotation, origin.X, origin.Y); }
+    public QueryList Query(Rectangle rect, float rotation, Vector2 origin) { return Query(rect.X, rect.Y, rect.Width, rect.Height, rotation, origin.X, origin.Y); }
     /// <summary>Query and return a collection of ids that intersect the given rectangle</summary>
-    public ReadOnlySpan<int> Query(float x, float y, float width, float height, float rotation, Vector2 origin) { return Query(x, y, width, height, rotation, origin.X, origin.Y); }
+    public QueryList Query(float x, float y, float width, float height, float rotation, Vector2 origin) { return Query(x, y, width, height, rotation, origin.X, origin.Y); }
     /// <summary>Query and return a collection of ids that intersect the given rectangle</summary>
-    public ReadOnlySpan<int> Query(float x, float y, float width, float height, float rotation, float originX, float originY) {
-        float cos = MathF.Cos(rotation),
-            sin = MathF.Sin(rotation),
-            sx = -originX,
-            sy = -originY,
-            w = width + sx,
-            h = height + sy,
-            xcos = sx * cos,
-            ycos = sy * cos,
-            xsin = sx * sin,
-            ysin = sy * sin,
-            wcos = w * cos,
-            wsin = w * sin,
-            hcos = h * cos,
-            hsin = h * sin;
-        Vector2 tl = new Vector2(xcos - ysin + x, xsin + ycos + y),
-            tr = new Vector2(wcos - ysin + x, wsin + ycos + y),
-            br = new Vector2(wcos - hsin + x, wsin + hcos + y),
-            bl = new Vector2(xcos - hsin + x, xsin + hcos + y);
-        (float x1, float y1, float x2, float y2) t = (tl.X, tl.Y, tr.X, tr.Y), r = (tr.X, tr.Y, br.X, br.Y), b = (br.X, br.Y, bl.X, bl.Y), l = (bl.X, bl.Y, tl.X, tl.Y);
-        bool Intersects((float x, float y, float width, float height) rect) {
-            Vector2 vtl = new Vector2(rect.x, rect.y),
-                vtr = new Vector2(rect.x + rect.width, rect.y),
-                vbr = new Vector2(vtr.X, rect.y + rect.height),
-                vbl = new Vector2(rect.x, vbr.Y);
-            (float x1, float y1, float x2, float y2) vt = (vtl.X, vtl.Y, vtr.X, vtr.Y), vr = (vtr.X, vtr.Y, vbr.X, vbr.Y), vb = (vbr.X, vbr.Y, vbl.X, vbl.Y), vl = (vbl.X, vbl.Y, vtl.X, vtl.Y);
-            static bool LinesIntersect((float x1, float y1, float x2, float y2) a, (float x1, float y1, float x2, float y2) b) {
-                (float x1, float y1) = (a.x2 - a.x1, a.y2 - a.y1);
-                (float x2, float y2) = (b.x2 - b.x1, b.y2 - b.y1);
-                var denominator = x1 * y2 - y1 * x2;
-                if (MathF.Abs(denominator) < float.Epsilon)
-                    return false;
-                (float x3, float y3) = (b.x1 - a.x1, b.y1 - a.y1);
-                var t = (x3 * y2 - y3 * x2) / denominator;
-                if (t < 0 || t > 1)
-                    return false;
-                var u = (x3 * y1 - y3 * x1) / denominator;
-                if (u < 0 || u > 1)
-                    return false;
-                return true;
-            }
-            static bool Ints((float x1, float y1, float x2, float y2) a, (float x1, float y1, float x2, float y2) b, (float x1, float y1, float x2, float y2) c, (float x1, float y1, float x2, float y2) d, (float x1, float y1, float x2, float y2) value) {
-                return LinesIntersect(a, value) || LinesIntersect(b, value) || LinesIntersect(c, value) || LinesIntersect(d, value);
-            }
-            static float IsLeft(Vector2 a, Vector2 b, Vector2 p) {
-                return (b.X - a.X) * (p.Y - a.Y) - (p.X - a.X) * (b.Y - a.Y);
-            }
-            static bool InRect(Vector2 x, Vector2 y, Vector2 z, Vector2 w, Vector2 p) {
-                return IsLeft(x, y, p) > 0 && IsLeft(y, z, p) > 0 && IsLeft(z, w, p) > 0 && IsLeft(w, x, p) > 0;
-            }
-            return Ints(t, r, b, l, vt) || Ints(t, r, b, l, vr) || Ints(t, r, b, l, vb) || Ints(t, r, b, l, vl) ||
-                InRect(tl, tr, br, bl, vtl) || InRect(vtl, vtr, vbr, vbl, tl);
-        }
-        float right = x + width,
-            bottom = y + height;
+    public QueryList Query(float x, float y, float width, float height, float rotation, float originX, float originY) {
+        RotRect rect = new(x, y, width, height, rotation, new Vector2(originX, originY));
         var yield = ArrayPool<int>.Shared.Rent(_item.Length);
         var totalItems = 0;
         ref readonly var n = ref _node[0];
@@ -421,19 +387,19 @@ public struct Quadtree {
                     ne = _node[c + 1],
                     sw = _node[c + 2],
                     se = _node[c + 3];
-                if (Intersects((nw.X, nw.Y, nw.Width, nw.Height)))
+                if (rect.Intersects(new Quad(nw.X, nw.Y, nw.Width, nw.Height)))
                     _toProcess.Push(c);
-                if (Intersects((ne.X, ne.Y, ne.Width, ne.Height)))
+                if (rect.Intersects(new Quad(ne.X, ne.Y, ne.Width, ne.Height)))
                     _toProcess.Push(c + 1);
-                if (Intersects((sw.X, sw.Y, sw.Width, sw.Height)))
+                if (rect.Intersects(new Quad(sw.X, sw.Y, sw.Width, sw.Height)))
                     _toProcess.Push(c + 2);
-                if (Intersects((se.X, se.Y, se.Width, se.Height)))
+                if (rect.Intersects(new Quad(se.X, se.Y, se.Width, se.Height)))
                     _toProcess.Push(c + 3);
             } else if (n.Child > 0) {
                 int i = n.Child - 1;
                 do {
                     ref readonly var item = ref _item[i];
-                    if (Intersects((item.X, item.Y, item.Width, item.Height)))
+                    if (rect.Intersects(new Quad(item.X, item.Y, item.Width, item.Height)))
                         yield[totalItems++] = i;
                     i = item.Next;
                 } while (i != -1);
@@ -442,15 +408,14 @@ public struct Quadtree {
                 break;
             n = ref _node[_toProcess.Pop()];
         } while (true);
-        ArrayPool<int>.Shared.Return(yield);
-        return new ReadOnlySpan<int>(yield, 0, totalItems);
+        return new QueryList(yield, totalItems);
     }
     /// <summary>Query and return a collection of ids that intersect the given point/radius</summary>
-    public ReadOnlySpan<int> Query(Point p, float radius = 1) { return Query(p.X, p.Y, radius); }
+    public QueryList Query(Point p, float radius = 1) { return Query(p.X, p.Y, radius); }
     /// <summary>Query and return a collection of ids that intersect the given point/radius</summary>
-    public ReadOnlySpan<int> Query(Vector2 p, float radius = 1) { return Query(p.X, p.Y, radius); }
+    public QueryList Query(Vector2 p, float radius = 1) { return Query(p.X, p.Y, radius); }
     /// <summary>Query and return a collection of ids that intersect the given point/radius</summary>
-    public ReadOnlySpan<int> Query(float x, float y, float radius = 1) {
+    public QueryList Query(float x, float y, float radius = 1) {
         bool Intersects((float x, float y, float width, float height) rect) {
             float dx = MathF.Abs(x - (rect.x + (rect.width * .5f))),
                 dy = MathF.Abs(y - (rect.y + (rect.height * .5f)));
@@ -495,65 +460,63 @@ public struct Quadtree {
                 break;
             n = ref _node[_toProcess.Pop()];
         } while (true);
-        ArrayPool<int>.Shared.Return(yield);
-        return new ReadOnlySpan<int>(yield, 0, totalItems);
+        return new QueryList(yield, totalItems);
     }
     /// <summary>Query and return a collection of ids that intersect the given ray</summary>
-    public ReadOnlySpan<int> Raycast(Vector2 position, Point direction, float thickness = 1) { return Raycast(position.X, position.Y, direction.X, direction.Y, thickness); }
+    public QueryList Raycast(Vector2 position, Point direction, float thickness = 1) { return Raycast(position.X, position.Y, direction.X, direction.Y, thickness); }
     /// <summary>Query and return a collection of ids that intersect the given ray</summary>
-    public ReadOnlySpan<int> Raycast(Point position, Point direction, float thickness = 1) { return Raycast(position.X, position.Y, direction.X, direction.Y, thickness); }
+    public QueryList Raycast(Point position, Point direction, float thickness = 1) { return Raycast(position.X, position.Y, direction.X, direction.Y, thickness); }
     /// <summary>Query and return a collection of ids that intersect the given ray</summary>
-    public ReadOnlySpan<int> Raycast(Point position, Vector2 direction, float thickness = 1) { return Raycast(position.X, position.Y, direction.X, direction.Y, thickness); }
+    public QueryList Raycast(Point position, Vector2 direction, float thickness = 1) { return Raycast(position.X, position.Y, direction.X, direction.Y, thickness); }
     /// <summary>Query and return a collection of ids that intersect the given ray</summary>
-    public ReadOnlySpan<int> Raycast(Point position, float directionX, float directionY, float thickness = 1) { return Raycast(position.X, position.Y, directionX, directionY, thickness); }
+    public QueryList Raycast(Point position, float directionX, float directionY, float thickness = 1) { return Raycast(position.X, position.Y, directionX, directionY, thickness); }
     /// <summary>Query and return a collection of ids that intersect the given ray</summary>
-    public ReadOnlySpan<int> Raycast(Point position, float rotation, float thickness = 1) { return Raycast(position.X, position.Y, rotation, thickness); }
+    public QueryList Raycast(Point position, float rotation, float thickness = 1) { return Raycast(position.X, position.Y, rotation, thickness); }
     /// <summary>Query and return a collection of ids that intersect the given ray</summary>
-    public ReadOnlySpan<int> Raycast(Vector2 position, Vector2 direction, float thickness = 1) { return Raycast(position.X, position.Y, direction.X, direction.Y, thickness); }
+    public QueryList Raycast(Vector2 position, Vector2 direction, float thickness = 1) { return Raycast(position.X, position.Y, direction.X, direction.Y, thickness); }
     /// <summary>Query and return a collection of ids that intersect the given ray</summary>
-    public ReadOnlySpan<int> Raycast(Vector2 position, float directionX, float directionY, float thickness = 1) { return Raycast(position.X, position.Y, directionX, directionY, thickness); }
+    public QueryList Raycast(Vector2 position, float directionX, float directionY, float thickness = 1) { return Raycast(position.X, position.Y, directionX, directionY, thickness); }
     /// <summary>Query and return a collection of ids that intersect the given ray</summary>
-    public ReadOnlySpan<int> Raycast(Vector2 position, float rotation, float thickness = 1) { return Raycast(position.X, position.Y, rotation, thickness); }
+    public QueryList Raycast(Vector2 position, float rotation, float thickness = 1) { return Raycast(position.X, position.Y, rotation, thickness); }
     /// <summary>Query and return a collection of ids that intersect the given ray</summary>
-    public ReadOnlySpan<int> Raycast(float x, float y, Vector2 direction, float thickness = 1) { return Raycast(x, y, direction.X, direction.Y, thickness); }
+    public QueryList Raycast(float x, float y, Vector2 direction, float thickness = 1) { return Raycast(x, y, direction.X, direction.Y, thickness); }
     /// <summary>Query and return a collection of ids that intersect the given ray</summary>
-    public ReadOnlySpan<int> Raycast(float x, float y, float directionX, float directionY, float thickness = 1) {
+    public QueryList Raycast(float x, float y, float directionX, float directionY, float thickness = 1) {
         var rotation = MathF.Atan2(directionY, directionX);
         return Query(x, y, float.MaxValue, thickness, rotation, 0, thickness * .5f);
     }
     /// <summary>Query and return a collection of ids that intersect the given ray</summary>
-    public ReadOnlySpan<int> Raycast(float x, float y, float rotation, float thickness = 1) { return Query(x, y, float.MaxValue, thickness, rotation, 0, thickness * .5f); }
+    public QueryList Raycast(float x, float y, float rotation, float thickness = 1) { return Query(x, y, float.MaxValue, thickness, rotation, 0, thickness * .5f); }
     /// <summary>Query and return a collection of ids that intersect the given line</summary>
-    public ReadOnlySpan<int> Linecast(Point a, Point b, float thickness = 1) { return Linecast(a.X, a.Y, b.X, b.Y, thickness); }
+    public QueryList Linecast(Point a, Point b, float thickness = 1) { return Linecast(a.X, a.Y, b.X, b.Y, thickness); }
     /// <summary>Query and return a collection of ids that intersect the given line</summary>
-    public ReadOnlySpan<int> Linecast(Point a, Vector2 b, float thickness = 1) { return Linecast(a.X, a.Y, b.X, b.Y, thickness); }
+    public QueryList Linecast(Point a, Vector2 b, float thickness = 1) { return Linecast(a.X, a.Y, b.X, b.Y, thickness); }
     /// <summary>Query and return a collection of ids that intersect the given line</summary>
-    public ReadOnlySpan<int> Linecast(Vector2 a, Point b, float thickness = 1) { return Linecast(a.X, a.Y, b.X, b.Y, thickness); }
+    public QueryList Linecast(Vector2 a, Point b, float thickness = 1) { return Linecast(a.X, a.Y, b.X, b.Y, thickness); }
     /// <summary>Query and return a collection of ids that intersect the given line</summary>
-    public ReadOnlySpan<int> Linecast(float aX, float aY, Point b, float thickness = 1) { return Linecast(aX, aY, b.X, b.Y, thickness); }
+    public QueryList Linecast(float aX, float aY, Point b, float thickness = 1) { return Linecast(aX, aY, b.X, b.Y, thickness); }
     /// <summary>Query and return a collection of ids that intersect the given line</summary>
-    public ReadOnlySpan<int> Linecast(Point a, float bX, float bY, float thickness = 1) { return Linecast(a.X, a.Y, bX, bY, thickness); }
+    public QueryList Linecast(Point a, float bX, float bY, float thickness = 1) { return Linecast(a.X, a.Y, bX, bY, thickness); }
     /// <summary>Query and return a collection of ids that intersect the given line</summary>
-    public ReadOnlySpan<int> Linecast(Vector2 a, Vector2 b, float thickness = 1) { return Linecast(a.X, a.Y, b.X, b.Y, thickness); }
+    public QueryList Linecast(Vector2 a, Vector2 b, float thickness = 1) { return Linecast(a.X, a.Y, b.X, b.Y, thickness); }
     /// <summary>Query and return a collection of ids that intersect the given line</summary>
-    public ReadOnlySpan<int> Linecast(float aX, float aY, Vector2 b, float thickness = 1) { return Linecast(aX, aY, b.X, b.Y, thickness); }
+    public QueryList Linecast(float aX, float aY, Vector2 b, float thickness = 1) { return Linecast(aX, aY, b.X, b.Y, thickness); }
     /// <summary>Query and return a collection of ids that intersect the given line</summary>
-    public ReadOnlySpan<int> Linecast(Vector2 a, float bX, float bY, float thickness = 1) { return Linecast(a.X, a.Y, bX, bY, thickness); }
+    public QueryList Linecast(Vector2 a, float bX, float bY, float thickness = 1) { return Linecast(a.X, a.Y, bX, bY, thickness); }
     /// <summary>Query and return a collection of ids that intersect the given line</summary>
-    public ReadOnlySpan<int> Linecast(float x1, float y1, float x2, float y2, float thickness = 1) {
-        var rotation = MathF.Atan2(y2, x2);
-        return Query(x1, y1, float.MaxValue, thickness, rotation, 0, thickness * .5f);
+    public QueryList Linecast(float x1, float y1, float x2, float y2, float thickness = 1) {
+        var rotation = MathF.Atan2(y2 - y1, x2 - x1);
+        return Query(x1, y1, Vector2.Distance(new Vector2(x1, y1), new Vector2(x2, y2)), thickness, rotation, 0, thickness * .5f);
     }
     /// <summary>Query and return a collection of ids that have been added</summary>
-    public ReadOnlySpan<int> All {
+    public QueryList All {
         get {
             var yield = ArrayPool<int>.Shared.Rent(_item.Length);
             var totalItems = 0;
             for (var i = 0; i < _item.Length; i++)
                 if (_item[i].Next != -2)
                     yield[totalItems++] = i;
-            ArrayPool<int>.Shared.Return(yield);
-            return new ReadOnlySpan<int>(yield, 0, totalItems);
+            return new QueryList(yield, totalItems);
         }
     }
 
