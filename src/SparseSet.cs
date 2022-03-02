@@ -1,7 +1,9 @@
-﻿namespace Dcrew;
+﻿using System.Diagnostics;
+
+namespace Dcrew;
 
 /// <summary>A simple sparse set</summary>
-public struct SparseSet {
+public class SparseSet {
     int[] _dense;
     int[] _sparse;
     public int Count { get; private set; }
@@ -18,6 +20,7 @@ public struct SparseSet {
     /// 
     /// Call <see cref="EnsureFits(int, int)"/> before this if you may need to expand</summary>
     public void Add(int i) {
+        Debug.Assert(!Has(i));
         _dense[Count] = i;
         _sparse[i] = Count;
         Count++;
@@ -31,6 +34,7 @@ public struct SparseSet {
     }
     /// <summary>Remove <paramref name="i"/> from this set</summary>
     public void Remove(int i) {
+        Debug.Assert(Has(i));
         int v = _sparse[i];
         int temp = _dense[--Count];
         _dense[v] = temp;
@@ -53,7 +57,7 @@ public struct SparseSet {
 }
 
 /// <summary>A simple sparse set with items</summary>
-public struct SparseSet<T> {
+public class SparseSet<T> {
     int[] _dense;
     T[] _item;
     int[] _sparse;
@@ -82,6 +86,7 @@ public struct SparseSet<T> {
     /// 
     /// Call <see cref="EnsureFits(int, int)"/> before this if you may need to expand</summary>
     public ref T Add(int i, T item) {
+        Debug.Assert(!Has(i));
         _dense[Count] = i;
         ref var r = ref _item[Count];
         r = item;
@@ -92,6 +97,7 @@ public struct SparseSet<T> {
     /// 
     /// Call <see cref="EnsureFits(int, int)"/> before this if you may need to expand</summary>
     public ref T Add(int i) {
+        Debug.Assert(!Has(i));
         _dense[Count] = i;
         _sparse[i] = Count;
         return ref _item[Count++];
@@ -105,6 +111,7 @@ public struct SparseSet<T> {
     }
     /// <summary>Remove <paramref name="i"/> from this set</summary>
     public void Remove(int i) {
+        Debug.Assert(Has(i));
         int v = _sparse[i];
         int temp = _dense[--Count];
         _dense[v] = temp;
@@ -113,7 +120,13 @@ public struct SparseSet<T> {
         _item[Count] = default;
         _sparse[temp] = v;
     }
-    public ref T this[int i] => ref _item[_sparse[i]];
+    public ref T this[int i] {
+        get {
+            Debug.Assert(Has(i));
+            return ref _item[_sparse[i]];
+        }
+    }
+
     /// <summary>Get all ints added to this set</summary>
     public ReadOnlySpan<int> All => new(_dense, 0, Count);
     /// <summary>True if <paramref name="i"/> is in this set</summary>

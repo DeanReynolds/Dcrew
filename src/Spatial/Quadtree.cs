@@ -59,7 +59,7 @@ public struct Quadtree {
     readonly Node[] _node;
     int _freeNode;
     TreeItem[] _item;
-    readonly Stack<int> _toProcess;
+    readonly Stack<int> _toProcess, _toProcess2;
     readonly HashSet<int> _nodesToResize;
     float _newX, _newY, _newWidth, _newHeight;
 
@@ -94,6 +94,7 @@ public struct Quadtree {
         for (var i = 0; i < _item.Length; i++)
             _item[i].Next = -2;
         _toProcess = new Stack<int>();
+        _toProcess2 = new Stack<int>();
         _nodesToResize = new HashSet<int>();
     }
 
@@ -448,14 +449,21 @@ public struct Quadtree {
                     ne = _node[c + 1],
                     sw = _node[c + 2],
                     se = _node[c + 3];
-                if (nw.X < right && x < nw.X + nw.Width && nw.Y < bottom && y < nw.Y + nw.Height)
-                    _toProcess.Push(c);
-                if (ne.X < right && x < ne.X + ne.Width && ne.Y < bottom && y < ne.Y + ne.Height)
-                    _toProcess.Push(c + 1);
-                if (sw.X < right && x < sw.X + sw.Width && sw.Y < bottom && y < sw.Y + sw.Height)
-                    _toProcess.Push(c + 2);
-                if (se.X < right && x < se.X + se.Width && se.Y < bottom && y < se.Y + se.Height)
-                    _toProcess.Push(c + 3);
+                if (new Quad(x, y, width, height).Contains(new Quad(n.X, n.Y, n.Width, n.Height))) {
+                    _toProcess2.Push(c);
+                    _toProcess2.Push(c + 1);
+                    _toProcess2.Push(c + 2);
+                    _toProcess2.Push(c + 3);
+                } else {
+                    if (nw.X < right && x < nw.X + nw.Width && nw.Y < bottom && y < nw.Y + nw.Height)
+                        _toProcess.Push(c);
+                    if (ne.X < right && x < ne.X + ne.Width && ne.Y < bottom && y < ne.Y + ne.Height)
+                        _toProcess.Push(c + 1);
+                    if (sw.X < right && x < sw.X + sw.Width && sw.Y < bottom && y < sw.Y + sw.Height)
+                        _toProcess.Push(c + 2);
+                    if (se.X < right && x < se.X + se.Width && se.Y < bottom && y < se.Y + se.Height)
+                        _toProcess.Push(c + 3);
+                }
             } else if (n.Child > 0) {
                 int i = n.Child - 1;
                 do {
@@ -469,6 +477,24 @@ public struct Quadtree {
                 break;
             n = ref _node[_toProcess.Pop()];
         } while (true);
+        while (_toProcess2.Count > 0) {
+            n = ref _node[_toProcess2.Pop()];
+            if (n.Child < 0) {
+                int c = Math.Abs(n.Child);
+                _toProcess2.Push(c);
+                _toProcess2.Push(c + 1);
+                _toProcess2.Push(c + 2);
+                _toProcess2.Push(c + 3);
+            } else if (n.Child > 0) {
+                int i = n.Child - 1;
+                do {
+                    ref readonly var item = ref _item[i];
+                    if (new Quad(x, y, width, height).Intersects(new Quad(item.X, item.Y, item.Width, item.Height)))
+                        yield[totalItems++] = i;
+                    i = item.Next;
+                } while (i != -1);
+            }
+        }
         return new QueryList(yield, totalItems);
     }
     /// <summary>Query and return a collection of ids that intersect the given rectangle</summary>
@@ -490,14 +516,21 @@ public struct Quadtree {
                     ne = _node[c + 1],
                     sw = _node[c + 2],
                     se = _node[c + 3];
-                if (rect.Intersects(new Quad(nw.X, nw.Y, nw.Width, nw.Height)))
-                    _toProcess.Push(c);
-                if (rect.Intersects(new Quad(ne.X, ne.Y, ne.Width, ne.Height)))
-                    _toProcess.Push(c + 1);
-                if (rect.Intersects(new Quad(sw.X, sw.Y, sw.Width, sw.Height)))
-                    _toProcess.Push(c + 2);
-                if (rect.Intersects(new Quad(se.X, se.Y, se.Width, se.Height)))
-                    _toProcess.Push(c + 3);
+                if (rect.Contains(new Quad(n.X, n.Y, n.Width, n.Height))) {
+                    _toProcess2.Push(c);
+                    _toProcess2.Push(c + 1);
+                    _toProcess2.Push(c + 2);
+                    _toProcess2.Push(c + 3);
+                } else {
+                    if (rect.Intersects(new Quad(nw.X, nw.Y, nw.Width, nw.Height)))
+                        _toProcess.Push(c);
+                    if (rect.Intersects(new Quad(ne.X, ne.Y, ne.Width, ne.Height)))
+                        _toProcess.Push(c + 1);
+                    if (rect.Intersects(new Quad(sw.X, sw.Y, sw.Width, sw.Height)))
+                        _toProcess.Push(c + 2);
+                    if (rect.Intersects(new Quad(se.X, se.Y, se.Width, se.Height)))
+                        _toProcess.Push(c + 3);
+                }
             } else if (n.Child > 0) {
                 int i = n.Child - 1;
                 do {
@@ -511,6 +544,24 @@ public struct Quadtree {
                 break;
             n = ref _node[_toProcess.Pop()];
         } while (true);
+        while (_toProcess2.Count > 0) {
+            n = ref _node[_toProcess2.Pop()];
+            if (n.Child < 0) {
+                int c = Math.Abs(n.Child);
+                _toProcess2.Push(c);
+                _toProcess2.Push(c + 1);
+                _toProcess2.Push(c + 2);
+                _toProcess2.Push(c + 3);
+            } else if (n.Child > 0) {
+                int i = n.Child - 1;
+                do {
+                    ref readonly var item = ref _item[i];
+                    if (rect.Intersects(new Quad(item.X, item.Y, item.Width, item.Height)))
+                        yield[totalItems++] = i;
+                    i = item.Next;
+                } while (i != -1);
+            }
+        }
         return new QueryList(yield, totalItems);
     }
     /// <summary>Query and return a collection of ids that intersect the given point/radius</summary>

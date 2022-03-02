@@ -25,6 +25,14 @@ public struct Camera2D {
             _flags |= Flags.IsDirty;
         }
     }
+    public Vector2 Pos {
+        get => new(_x, _y);
+        set {
+            _x = value.X;
+            _y = value.Y;
+            _flags |= Flags.IsDirty;
+        }
+    }
     /// <summary>Camera zoom/object scale</summary>
     public float Zoom {
         get => _zoom;
@@ -76,6 +84,7 @@ public struct Camera2D {
     /// <param name="targetRes">Virtual resolution to maintain. See <see cref="FixBlackBars()"/></param>
     public Camera2D((int Width, int Height) targetRes) : this() {
         TargetRes = targetRes;
+        Origin = new(targetRes.Width * .5f, targetRes.Height * .5f);
     }
 
     /// <summary>View transformation matrix</summary>
@@ -130,12 +139,13 @@ public struct Camera2D {
     void UpdateDirty() {
         if ((_flags & Flags.IsDirty) == 0)
             return;
-        float scaleM11 = 1 * _zoom * TargetScale,
-            scaleM22 = 1 * _zoom * TargetScale,
+        float targetScale = TargetScale,
+            scaleM11 = 1 * _zoom * targetScale,
+            scaleM22 = 1 * _zoom * targetScale,
             m41 = -X * scaleM11,
             m42 = -Y * scaleM22;
-        _view.M41 = (m41 * _rotCos) + (m42 * -_rotSin) + Origin.X;
-        _view.M42 = (m41 * _rotSin) + (m42 * _rotCos) + Origin.Y;
+        _view.M41 = (m41 * _rotCos) + (m42 * -_rotSin) + (Origin.X * targetScale);
+        _view.M42 = (m41 * _rotSin) + (m42 * _rotCos) + (Origin.Y * targetScale);
         _view.M11 = scaleM11 * _rotCos;
         _view.M12 = scaleM22 * _rotSin;
         _view.M21 = scaleM11 * -_rotSin;

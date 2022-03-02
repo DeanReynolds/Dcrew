@@ -1,7 +1,7 @@
 ﻿namespace Dcrew;
 
 /// <summary>A <see cref="SparseSet"/> with the ability to add without giving an index</summary>
-public struct FreeList {
+public class FreeList {
     SparseSet _set;
     int _free;
     int[] _next;
@@ -59,7 +59,7 @@ public struct FreeList {
 }
 
 /// <summary>A <see cref="SparseSet"/> with the ability to add without giving an index</summary>
-public struct FreeList<T> {
+public class FreeList<T> {
     SparseSet<T> _set;
     int _free;
     int[] _next;
@@ -92,7 +92,7 @@ public struct FreeList<T> {
         return i;
     }
     /// <summary>Adds <paramref name="item"/> at the next free index and returns that index</summary>
-    public int Add(T item) {
+    public int Add(T item = default) {
         int i;
         if (_free != -1) {
             i = _free;
@@ -120,7 +120,7 @@ public struct FreeList<T> {
         return ref _set.Add(i);
     }
     /// <summary>Set index <paramref name="i"/> to <paramref name="item"/> and return a ref to it</summary>
-    public ref T Set(int i, T item) {
+    public ref T Set(int i, T item = default) {
         if (_free == i)
             _free = _next[i];
         else {

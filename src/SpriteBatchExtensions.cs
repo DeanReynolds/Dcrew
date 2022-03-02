@@ -58,8 +58,8 @@ public static class SpriteBatchExtensions {
     public static void DrawRectangle(this SpriteBatch s, float x, float y, float width, float height, Color color, RectStyle style, float rotation = 0, Vector2 origin = default, float thickness = 1, float layerDepth = 0) {
         var o = new Vector2(0, (int)style / 2f);
         float t = thickness * (1 - (int)style),
-            offX = x + origin.X,
-            offY = y + origin.Y;
+            offX = x,
+            offY = y;
         static void Rotate(float width, float height, float angle, Vector2 origin, out Vector2 tl, out Vector2 tr, out Vector2 br, out Vector2 bl) {
             float cos = MathF.Cos(angle),
                 sin = MathF.Sin(angle),

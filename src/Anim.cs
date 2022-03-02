@@ -1,129 +1,44 @@
 ﻿namespace Dcrew;
 
 public struct Anim {
-    [Flags] enum Flags : byte { IsPlaying = 1, IsLooped = 2 }
-    float _secPerFrame, _startTime, _pauseTime;
-    Flags _flags;
+    float _frame;
     readonly ushort _frames;
-    public int CurrentFrame {
-        get {
-            if ((_flags & Flags.IsPlaying) == 0)
-                return 0;
-            if (_pauseTime != -1) {
-                if ((_flags & Flags.IsLooped) != 0)
-                    return (int)((_pauseTime - _startTime) / _secPerFrame) % _frames;
-                return Math.Min((int)((_pauseTime - _startTime) / _secPerFrame), _frames - 1);
-            }
-            if ((_flags & Flags.IsLooped) != 0)
-                return (int)((Time.Total - _startTime) / _secPerFrame) % _frames;
-            return Math.Min((int)((Time.Total - _startTime) / _secPerFrame), _frames - 1);
-        }
-    }
+    public float SecPerFrame;
 
+    public int CurrentFrame => (int)MathF.Min(MathF.Abs(_frame), _frames - 1);
     public float SecPerCycle {
-        get => _secPerFrame * _frames;
-        set => SecPerFrame = 1 / value;
+        get => 1 / SecPerFrame;
+        set => SecPerFrame = _frames / value;
     }
-    public float SecPerFrame {
-        get => _secPerFrame;
+    public bool Loop {
+        get => MathF.Sign(_frame) >= 0;
         set {
-            var oldTime = _secPerFrame;
-            _secPerFrame = value;
-            var delta = Time.Total - _startTime;
-            _startTime = Time.Total - (delta * (_secPerFrame / oldTime));
+            if (value)
+                _frame = MathF.Abs(_frame);
+            else
+                _frame = -MathF.Abs(_frame);
         }
     }
-    public bool IsPlaying {
-        get => (_flags & Flags.IsPlaying) != 0 && _pauseTime == -1;
-        set {
-            if (value) {
-                Play();
-                return;
-            }
-            Pause();
-        }
-    }
-    public bool IsPaused {
-        get => (_flags & Flags.IsPlaying) != 0 && _pauseTime != -1;
-        set {
-            if (value) {
-                Pause();
-                return;
-            }
-            Play();
-        }
-    }
-    public bool IsStopped {
-        get => (_flags & Flags.IsPlaying) == 0;
-        set {
-            if (value) {
-                Stop();
-                return;
-            }
-            Play();
-        }
-    }
-    public bool IsLooped {
-        get => (_flags & Flags.IsLooped) != 0;
-        set {
-            if (value) {
-                if ((_flags & Flags.IsLooped) == 0) {
-                    var delta = Time.Total - _startTime;
-                    if (delta > SecPerCycle)
-                        _startTime = Time.Total - SecPerCycle;
-                }
-                _flags |= Flags.IsLooped;
-                return;
-            }
-            if ((_flags & Flags.IsLooped) != 0) {
-                var delta = Time.Total - _startTime;
-                if (delta > SecPerCycle)
-                    _startTime = Time.Total - ((int)(delta / SecPerCycle) * SecPerCycle);
-            }
-            _flags &= ~Flags.IsLooped;
-        }
-    }
+    public bool Finished => !Loop && MathF.Abs(_frame) == _frames;
 
-    public Anim(ushort frames, float secPerCycle, bool loop, bool startPlaying = true) {
+    public Anim(ushort frames, float secPerCycle, bool loop) {
         _frames = frames;
-        _secPerFrame = 1 / secPerCycle;
-        _startTime = Time.Total;
-        _pauseTime = -1;
-        _flags = 0;
+        SecPerFrame = frames / secPerCycle;
         if (loop)
-            _flags |= Flags.IsLooped;
-        if (startPlaying)
-            _flags |= Flags.IsPlaying;
+            _frame = 0;
+        else
+            _frame = -.001f; ;
     }
 
-    /// <summary>Play or resume (if paused)</summary>
-    public void Play() {
-        if (_pauseTime != -1)
-            _startTime = Time.Total - (_pauseTime - _startTime);
-        _flags |= Flags.IsPlaying;
-        _pauseTime = -1;
+    public void Update() {
+        if (Loop)
+            _frame = (MathF.Abs(_frame) + (SecPerFrame * Time.Delta)) % _frames;
+        else
+            _frame = -MathF.Min(MathF.Abs(_frame) + (SecPerFrame * Time.Delta), _frames);
     }
-    /// <summary>Pause at current frame</summary>
-    public void Pause() {
-        if ((_flags & Flags.IsPlaying) == 0)
-            return;
-        _pauseTime = Time.Total;
-    }
-    /// <summary>Stop playing</summary>
-    public void Stop() {
-        _flags &= ~Flags.IsPlaying;
-        _pauseTime = -1;
-    }
-    /// <summary>Reset frame to 0 and start playing</summary>
-    public void Restart() {
-        _pauseTime = -1;
-        _startTime = Time.Total;
-        _flags |= Flags.IsPlaying;
-    }
-    /// <summary>Reset frame to 0 and stop playing</summary>
+
+    /// <summary>Reset frame to 0</summary>
     public void Reset() {
-        _pauseTime = -1;
-        _startTime = Time.Total;
-        _flags &= ~Flags.IsPlaying;
+        _frame = 0;
     }
 }
