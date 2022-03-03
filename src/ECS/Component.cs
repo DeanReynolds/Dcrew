@@ -1,15 +1,25 @@
 ﻿namespace Dcrew.ECS;
 
 public static class Component<T> where T : struct, IComponent {
-    static internal SparseSet _set;
-    static internal T[] _item;
+    static internal SparseSet _set = new(0, 0);
+    static internal T[] _item = Array.Empty<T>();
+    public static int MaxComponents => _set.MaxComponents;
+    public static int MaxEntities => _set.MaxEntities;
 
     public static void Init(int maxEntities, int maxComponents) {
-        _set = new SparseSet(maxEntities, maxComponents);
-        _item = new T[maxEntities];
+        _set.Resize(maxEntities, maxComponents);
+        Array.Resize(ref _item, maxEntities);
     }
 
     public static ref T Add(int entity, T component = default) {
+        if (_set.MaxEntities < entity + 1) {
+            if (_set.Count >= _set.MaxComponents)
+                _set.Resize(entity + 1, (_set.MaxComponents + 1) << 1);
+            else
+                _set.Resize(entity + 1, _set.MaxComponents);
+            Array.Resize(ref _item, entity + 1);
+        } else if (_set.Count >= _set.MaxComponents)
+            _set.Resize(_set.MaxEntities, (_set.MaxComponents + 1) << 1);
         _set.Add(entity);
         ref T r = ref _item[entity];
         r = component;
