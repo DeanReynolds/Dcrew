@@ -131,7 +131,7 @@ public class FreeList<T> {
                 _refer[i] = -1;
             }
         }
-        return ref _set.Add(i, item);
+        return ref _set.Set(i, item);
     }
     /// <summary>Remove index <paramref name="i"/> from this set</summary>
     public void Remove(int i) {
