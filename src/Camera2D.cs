@@ -122,7 +122,7 @@ public class Camera2D {
     }
     /// <summary>Position offset (unaffected by angle and zoom)</summary>
     public Vector2 Origin;
-    /// <summary>Virtual resolution to maintain. See <see cref="FixBlackBars()"/></summary>
+    /// <summary>Virtual resolution</summary>
     public (int Width, int Height) TargetRes {
         get => (_virtualWidth, _virtualHeight);
         set {
