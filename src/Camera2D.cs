@@ -127,11 +127,12 @@ public class Camera2D {
         get => (_virtualWidth, _virtualHeight);
         set {
             if (value.Width > 0 && value.Height > 0) {
-                _flags |= Flags.HasVirtualRes;
                 _virtualWidth = value.Width;
                 _virtualHeight = value.Height;
+                _flags |= Flags.HasVirtualRes;
                 return;
             }
+            _virtualWidth = _virtualHeight = 0;
             _flags &= ~Flags.HasVirtualRes;
         }
     }
