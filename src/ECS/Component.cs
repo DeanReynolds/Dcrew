@@ -1,10 +1,11 @@
 ﻿namespace Dcrew.ECS;
 
-public static class Component<T> where T : struct, IComponent {
+internal static class Component<T> where T : struct, IComponent {
     static internal SparseSet _set = new(0, 0);
     static internal T[] _item = Array.Empty<T>();
     public static int MaxComponents => _set.MaxComponents;
     public static int MaxEntities => _set.MaxEntities;
+    public static int Count => _set.Count;
 
     public static void Init(int maxEntities, int maxComponents) {
         _set.Resize(maxEntities, maxComponents);

@@ -15,6 +15,7 @@ public class SparseSet {
         _sparse = new int[maxEntities];
         Count = 0;
     }
+    public SparseSet() : this(0, 0) { }
 
     /// <summary>Add <paramref name="i"/> to this set
     /// 
@@ -71,6 +72,7 @@ public class SparseSet<T> {
         _sparse = new int[maxEntities];
         Count = 0;
     }
+    public SparseSet() : this(0, 0) { }
 
     public ref T Set(int i, T item) {
         int v = _sparse[i];

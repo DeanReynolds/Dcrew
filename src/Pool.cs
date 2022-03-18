@@ -28,7 +28,9 @@ public static class Pool<T> where T : class, new() {
     public static T Spawn() {
         if (Count == 0)
             return new T();
-        return Interlocked.Exchange(ref _arr[--Count], default);
+        var r = _arr[--Count];
+        _arr[Count] = null;
+        return r;
     }
     /// <summary>Frees <paramref name="obj"/> for use when <see cref="Spawn"/> is called</summary>
     public static void Free(T obj) {

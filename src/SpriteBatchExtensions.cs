@@ -6,9 +6,9 @@ namespace Dcrew;
 public enum RectStyle : byte { Inline = 0, Centered = 1, Outline = 2 }
 
 public static class SpriteBatchExtensions {
-    public static (Texture2D Texture, Rectangle? Source) Pixel { get; private set; }
+    public static (Texture2D Texture, Rectangle? Source) Pixel { get; set; }
 
-    public static void Init() {
+    static SpriteBatchExtensions() {
         var pixel = new Texture2D(Global.Game.GraphicsDevice, 1, 1);
         pixel.SetData(new Color[] { Color.White });
         Pixel = (pixel, null);

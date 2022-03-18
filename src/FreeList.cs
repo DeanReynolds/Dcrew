@@ -2,7 +2,7 @@
 
 /// <summary>A <see cref="SparseSet"/> with the ability to add without giving an index</summary>
 public class FreeList {
-    SparseSet _set;
+    readonly SparseSet _set;
     int _free;
     int[] _next;
     public int Count => _set.Count;
@@ -60,7 +60,7 @@ public class FreeList {
 
 /// <summary>A <see cref="SparseSet"/> with the ability to add without giving an index</summary>
 public class FreeList<T> {
-    SparseSet<T> _set;
+    readonly SparseSet<T> _set;
     int _free;
     int[] _next;
     int[] _refer;
