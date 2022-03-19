@@ -141,28 +141,6 @@ public class Camera2D {
     /// <summary>Virtual resolution scale/zoom</summary>
     public float TargetScale => _targetScale;
     public Rectangle ViewRect => ViewRectAt(0);
-
-    public Camera2D() {
-        _proj = new Matrix {
-            M33 = -1,
-            M41 = -1,
-            M42 = 1,
-            M44 = 1
-        };
-        _x = _y = _rot = _rotSin = 0;
-        _z = _rotCos = _scaleX = _scaleY = 1;
-        _virtualWidth = _virtualHeight = _gameWidth = _gameHeight = 0;
-        _flags = Flags.IsDirty;
-        Origin = Vector2.Zero;
-        _targetScale = 1;
-    }
-    /// <summary></summary>
-    /// <param name="targetRes">Virtual resolution to maintain. See <see cref="FixBlackBars()"/></param>
-    public Camera2D((int Width, int Height) targetRes) : this() {
-        TargetRes = targetRes;
-        Origin = new(targetRes.Width * .5f, targetRes.Height * .5f);
-    }
-
     /// <summary>View transformation matrix</summary>
     public Matrix View {
         get {
@@ -184,12 +162,6 @@ public class Camera2D {
             return _proj;
         }
     }
-    public Vector2 MousePos {
-        get {
-            UpdateDirty();
-            return new(_mouseX, _mouseY);
-        }
-    }
     public float MouseX {
         get {
             UpdateDirty();
@@ -201,6 +173,33 @@ public class Camera2D {
             UpdateDirty();
             return _mouseY;
         }
+    }
+    public Vector2 MouseXY {
+        get {
+            UpdateDirty();
+            return new(_mouseX, _mouseY);
+        }
+    }
+
+    public Camera2D() {
+        _proj = new Matrix {
+            M33 = -1,
+            M41 = -1,
+            M42 = 1,
+            M44 = 1
+        };
+        _x = _y = _rot = _rotSin = 0;
+        _z = _rotCos = _scaleX = _scaleY = 1;
+        _virtualWidth = _virtualHeight = _gameWidth = _gameHeight = 0;
+        _flags = Flags.IsDirty;
+        Origin = Vector2.Zero;
+        _targetScale = 1;
+    }
+    /// <summary></summary>
+    /// <param name="targetRes">Virtual resolution to maintain. See <see cref="FixBlackBars()"/></param>
+    public Camera2D((int Width, int Height) targetRes) : this() {
+        TargetRes = targetRes;
+        Origin = new(targetRes.Width * .5f, targetRes.Height * .5f);
     }
 
     /// <summary>Convert the given position from screen to world</summary>
