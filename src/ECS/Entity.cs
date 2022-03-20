@@ -4,6 +4,7 @@ public static class Entity {
     static FreeList _set = new(0);
     static List<SparseSet>[] _components = Array.Empty<List<SparseSet>>();
     static readonly HashSet<SparseSet> _componentsList = new();
+    public static int Count => _set.Count;
 
     public static void Init(int capacity) {
         _set = new(capacity);
@@ -60,4 +61,6 @@ public static class Entity {
             s.Remove(entity);
         _components[entity].Clear();
     }
+
+    public static int CountOf<T>() where T : struct, IComponent => Component<T>.Count;
 }
