@@ -32,6 +32,6 @@ internal static class Component<T> where T : struct, IComponent {
     }
     public static ref T Get(int entity) => ref _item[entity];
     public static ReadOnlySpan<int> All => _set.All;
-    public static bool Has(int entity) => _set.Has(entity);
+    public static bool Has(int entity) => _set.MaxEntities > entity && _set.Has(entity);
     public static void Clear() => _set.Clear();
 }
