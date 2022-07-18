@@ -5,7 +5,7 @@ namespace Dcrew.Camera;
 
 /// <summary>An efficient 2D Camera</summary>
 public class Camera2D {
-    float _x, _y, _z, _rot, _scaleX, _scaleY, _rotCos, _rotSin, _targetScale, _mouseX, _mouseY;
+    float _x, _y, _originX, _originY, _z, _rot, _scaleX, _scaleY, _rotCos, _rotSin, _targetScale, _mouseX, _mouseY;
     int _virtualWidth, _virtualHeight, _gameWidth, _gameHeight;
     Flags _flags;
     Matrix _view, _viewInvert, _proj;
@@ -121,7 +121,14 @@ public class Camera2D {
         }
     }
     /// <summary>Position offset (unaffected by angle and zoom)</summary>
-    public Vector2 Origin;
+    public Vector2 Origin {
+        get => new(_originX, _originY);
+        set {
+            _originX = value.X;
+            _originY = value.Y;
+            _flags |= Flags.IsDirty;
+        }
+    }
     /// <summary>Virtual resolution</summary>
     public (int Width, int Height) TargetRes {
         get => (_virtualWidth, _virtualHeight);
@@ -130,16 +137,23 @@ public class Camera2D {
                 _virtualWidth = value.Width;
                 _virtualHeight = value.Height;
                 _flags |= Flags.HasVirtualRes;
+                _flags |= Flags.IsDirty;
                 return;
             }
             _virtualWidth = _virtualHeight = 0;
             _flags &= ~Flags.HasVirtualRes;
+            _flags |= Flags.IsDirty;
         }
     }
 
-    [Flags] enum Flags { IsDirty = 1, HasVirtualRes = 2 }
+    [Flags] enum Flags { IsDirty = 1, HasVirtualRes = 2, IsMainCamera = 4 }
     /// <summary>Virtual resolution scale/zoom</summary>
-    public float TargetScale => _targetScale;
+    public float TargetScale {
+        get {
+            UpdateDirty();
+            return _targetScale;
+        }
+    }
     public Rectangle ViewRect => ViewRectAt(0);
     /// <summary>View transformation matrix</summary>
     public Matrix View {
@@ -181,23 +195,27 @@ public class Camera2D {
         }
     }
 
-    public Camera2D() {
+    public Camera2D(bool isMainCamera, Vector2 xy = new()) {
         _proj = new Matrix {
             M33 = -1,
             M41 = -1,
             M42 = 1,
             M44 = 1
         };
-        _x = _y = _rot = _rotSin = 0;
+        _x = xy.X;
+        _y = xy.Y;
+        _rot = _rotSin = 0;
         _z = _rotCos = _scaleX = _scaleY = 1;
         _virtualWidth = _virtualHeight = _gameWidth = _gameHeight = 0;
         _flags = Flags.IsDirty;
         Origin = Vector2.Zero;
         _targetScale = 1;
+        if (isMainCamera)
+            _flags |= Flags.IsMainCamera;
     }
     /// <summary></summary>
-    /// <param name="targetRes">Virtual resolution to maintain. See <see cref="FixBlackBars()"/></param>
-    public Camera2D((int Width, int Height) targetRes) : this() {
+    /// <param name="targetRes">Virtual resolution to maintain</param>
+    public Camera2D(bool isMainCamera, (int Width, int Height) targetRes, Vector2 xy = new()) : this(isMainCamera, xy) {
         TargetRes = targetRes;
         Origin = new(targetRes.Width * .5f, targetRes.Height * .5f);
     }
@@ -250,8 +268,8 @@ public class Camera2D {
             scaleM22 = _scaleY * _targetScale * zoomFromZ,
             m41 = -_x * scaleM11,
             m42 = -_y * scaleM22;
-        view.M41 = (m41 * _rotCos) + (m42 * -_rotSin) + (Origin.X * _targetScale);
-        view.M42 = (m41 * _rotSin) + (m42 * _rotCos) + (Origin.Y * _targetScale);
+        view.M41 = (m41 * _rotCos) + (m42 * -_rotSin) + (_originX * _targetScale);
+        view.M42 = (m41 * _rotSin) + (m42 * _rotCos) + (_originY * _targetScale);
         view.M11 = scaleM11 * _rotCos;
         view.M12 = scaleM22 * _rotSin;
         view.M21 = scaleM11 * -_rotSin;
@@ -312,25 +330,25 @@ public class Camera2D {
 
     void UpdateDirty() {
         if (_lastFrameUpdate != Time.Ticks) {
-            if ((_flags & Flags.HasVirtualRes) != 0 &&
-                (_gameWidth != Global.Game.GraphicsDevice.PresentationParameters.BackBufferWidth ||
-                _gameHeight != Global.Game.GraphicsDevice.PresentationParameters.BackBufferHeight)) {
-
+            if ((_flags & Flags.IsMainCamera) != 0 && (_flags & Flags.HasVirtualRes) != 0) {
                 _targetScale = MathF.Min(Global.Game.GraphicsDevice.PresentationParameters.BackBufferWidth / (float)TargetRes.Width,
                     Global.Game.GraphicsDevice.PresentationParameters.BackBufferHeight / (float)TargetRes.Height);
 
-                var targetAspectRatio = _virtualWidth / (float)_virtualHeight;
-                var width2 = Global.Game.GraphicsDevice.PresentationParameters.BackBufferWidth;
-                var height2 = (int)(width2 / targetAspectRatio + .5f);
-                if (height2 > Global.Game.GraphicsDevice.PresentationParameters.BackBufferHeight) {
-                    height2 = Global.Game.GraphicsDevice.PresentationParameters.BackBufferHeight;
-                    width2 = (int)(height2 * targetAspectRatio + .5f);
-                }
-                Global.Game.GraphicsDevice.Viewport = new Viewport((Global.Game.GraphicsDevice.PresentationParameters.BackBufferWidth / 2) - (width2 / 2),
-                    (Global.Game.GraphicsDevice.PresentationParameters.BackBufferHeight / 2) - (height2 / 2), width2, height2);
+                if (_gameWidth != Global.Game.GraphicsDevice.PresentationParameters.BackBufferWidth ||
+                    _gameHeight != Global.Game.GraphicsDevice.PresentationParameters.BackBufferHeight) {
+                    var targetAspectRatio = _virtualWidth / (float)_virtualHeight;
+                    var width2 = Global.Game.GraphicsDevice.PresentationParameters.BackBufferWidth;
+                    var height2 = (int)(width2 / targetAspectRatio + .5f);
+                    if (height2 > Global.Game.GraphicsDevice.PresentationParameters.BackBufferHeight) {
+                        height2 = Global.Game.GraphicsDevice.PresentationParameters.BackBufferHeight;
+                        width2 = (int)(height2 * targetAspectRatio + .5f);
+                    }
+                    Global.Game.GraphicsDevice.Viewport = new Viewport((Global.Game.GraphicsDevice.PresentationParameters.BackBufferWidth / 2) - (width2 / 2),
+                        (Global.Game.GraphicsDevice.PresentationParameters.BackBufferHeight / 2) - (height2 / 2), width2, height2);
 
-                _gameWidth = Global.Game.GraphicsDevice.PresentationParameters.BackBufferWidth;
-                _gameHeight = Global.Game.GraphicsDevice.PresentationParameters.BackBufferHeight;
+                    _gameWidth = Global.Game.GraphicsDevice.PresentationParameters.BackBufferWidth;
+                    _gameHeight = Global.Game.GraphicsDevice.PresentationParameters.BackBufferHeight;
+                }
 
                 _flags |= Flags.IsDirty;
             }

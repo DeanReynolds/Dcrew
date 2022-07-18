@@ -3,7 +3,7 @@
 namespace Dcrew;
 
 /// <summary>A simple sparse set</summary>
-public class SparseSet {
+public struct SparseSet {
     int[] _dense;
     int[] _sparse;
     public int Count { get; private set; }
@@ -34,12 +34,28 @@ public class SparseSet {
             Array.Resize(ref _dense, Count + expandBy);
     }
     /// <summary>Remove <paramref name="i"/> from this set</summary>
-    public void Remove(int i) {
+    public void Del(int i) {
         Debug.Assert(Has(i));
         int v = _sparse[i];
         int temp = _dense[--Count];
         _dense[v] = temp;
         _sparse[temp] = v;
+    }
+    /// <summary>Remove <paramref name="i"/> from this set if it has it</summary>
+    public bool TryDel(int i) {
+        if (i > _sparse.Length - 1)
+            return false;
+        int v = _sparse[i];
+        if (v < Count) {
+            ref int d = ref _dense[v];
+            if (d != i)
+                return false;
+            int temp = _dense[--Count];
+            d = temp;
+            _sparse[temp] = v;
+            return true;
+        }
+        return false;
     }
     /// <summary>Get all ints added to this set</summary>
     public ReadOnlySpan<int> All => new(_dense, 0, Count);
@@ -58,7 +74,7 @@ public class SparseSet {
 }
 
 /// <summary>A simple sparse set with items</summary>
-public class SparseSet<T> {
+public struct SparseSet<T> {
     int[] _dense;
     T[] _item;
     int[] _sparse;
@@ -112,15 +128,32 @@ public class SparseSet<T> {
             Array.Resize(ref _dense, Count + expandBy);
     }
     /// <summary>Remove <paramref name="i"/> from this set</summary>
-    public void Remove(int i) {
+    public void Del(int i) {
         Debug.Assert(Has(i));
         int v = _sparse[i];
         int temp = _dense[--Count];
         _dense[v] = temp;
-        ref var r = ref _item[v];
         _item[v] = _item[Count];
         _item[Count] = default;
         _sparse[temp] = v;
+    }
+    /// <summary>Remove <paramref name="i"/> from this set if it has it</summary>
+    public bool TryDel(int i) {
+        if (i > _sparse.Length - 1)
+            return false;
+        int v = _sparse[i];
+        if (v < Count) {
+            ref int d = ref _dense[v];
+            if (d != i)
+                return false;
+            int temp = _dense[--Count];
+            d = temp;
+            _item[v] = _item[Count];
+            _item[Count] = default;
+            _sparse[temp] = v;
+            return true;
+        }
+        return false;
     }
     public ref T this[int i] {
         get {

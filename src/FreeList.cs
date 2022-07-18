@@ -1,8 +1,8 @@
 ﻿namespace Dcrew;
 
 /// <summary>A <see cref="SparseSet"/> with the ability to add without giving an index</summary>
-public class FreeList {
-    readonly SparseSet _set;
+public struct FreeList {
+    SparseSet _set;
     int _free;
     int[] _next;
     public int Count => _set.Count;
@@ -33,7 +33,7 @@ public class FreeList {
     }
     /// <summary>Remove index <paramref name="i"/> from this set</summary>
     public void Remove(int i) {
-        _set.Remove(i);
+        _set.Del(i);
         _next[i] = _free;
         _free = i;
     }
@@ -59,8 +59,8 @@ public class FreeList {
 }
 
 /// <summary>A <see cref="SparseSet"/> with the ability to add without giving an index</summary>
-public class FreeList<T> {
-    readonly SparseSet<T> _set;
+public struct FreeList<T> {
+    SparseSet<T> _set;
     int _free;
     int[] _next;
     int[] _refer;
@@ -134,8 +134,8 @@ public class FreeList<T> {
         return ref _set.Set(i, item);
     }
     /// <summary>Remove index <paramref name="i"/> from this set</summary>
-    public void Remove(int i) {
-        _set.Remove(i);
+    public void Del(int i) {
+        _set.Del(i);
         if ((_next[i] = _free) != -1)
             _refer[_free] = i;
         _free = i;

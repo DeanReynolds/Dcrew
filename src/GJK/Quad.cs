@@ -189,7 +189,6 @@ public struct Quad {
         D += v;
         _xy += v;
     }
-
     /// <summary>Changes all corners of this <see cref="Quad"/></summary>
     public void Offset(Vector2 amount) => Offset(amount.X, amount.Y);
     /// <summary>Changes all corners of this <see cref="Quad"/></summary>
